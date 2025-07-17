@@ -138,20 +138,21 @@ function AcceptRidePage() {
       });
     }
 
+    const showNotification = () => {
+        new Notification('Nova Solicitação de Corrida', {
+            body: 'Você tem uma nova solicitação de viagem.',
+            icon: '/favicon.ico'
+        });
+    }
+
     // Browser Notification API
     if ('Notification' in window) {
       if (Notification.permission === 'granted') {
-        new Notification('Nova Solicitação de Corrida', {
-          body: 'Você tem uma nova solicitação de viagem.',
-          icon: '/favicon.ico' // opcional
-        });
+        showNotification();
       } else if (Notification.permission !== 'denied') {
         Notification.requestPermission().then(permission => {
           if (permission === 'granted') {
-            new Notification('Nova Solicitação de Corrida', {
-              body: 'Você tem uma nova solicitação de viagem.',
-              icon: '/favicon.ico' // opcional
-            });
+            showNotification();
           }
         });
       }
@@ -294,3 +295,5 @@ function AcceptRidePage() {
 }
 
 export default withAuth(AcceptRidePage, ["driver"]);
+
+    
