@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,47 +10,47 @@ body {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 6% 10%; /* Cinza Grafite */
+    --foreground: 240 6% 10%;
     
-    --card: 220 13% 97%; /* Cinza Neve */
+    --card: 0 0% 98%;
     --card-foreground: 240 6% 10%;
     
     --popover: 0 0% 100%;
     --popover-foreground: 240 6% 10%;
     
-    --primary: 145 100% 45%; /* Verde Neon */
+    --primary: 235 55% 55%; /* Um azul um pouco mais suave */
     --primary-foreground: 0 0% 100%;
     
     --secondary: 251 100% 65%; /* Roxo Vibrante */
     --secondary-foreground: 0 0% 100%;
     
-    --muted: 220 13% 97%; /* Cinza Neve */
+    --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
     
-    --accent: 145 100% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
     
-    --destructive: 26 100% 50%; /* Laranja Quente */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 145 100% 45%;
+    --ring: 235 55% 55%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 251 8% 10%; /* Preto Fosco / Roxo Escuro */
-    --foreground: 0 0% 100%;
+    --background: 240 6% 10%;
+    --foreground: 0 0% 98%;
 
-    --card: 251 8% 10%; /* Preto Fosco / Roxo Escuro */
-    --card-foreground: 0 0% 100%;
+    --card: 240 4% 12%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 145 100% 45%;
+    --primary: 235 55% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 251 100% 65%;
@@ -58,15 +59,15 @@ body {
     --muted: 240 4% 16%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 145 100% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 26 100% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
 
     --border: 240 4% 16%;
     --input: 240 4% 16%;
-    --ring: 145 100% 45%;
+    --ring: 235 55% 55%;
   }
 }
 
@@ -78,3 +79,5 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+    
