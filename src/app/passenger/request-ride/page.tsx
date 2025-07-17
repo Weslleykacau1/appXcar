@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { withAuth } from "@/components/with-auth";
-import { useAuth } from "@/context/auth-context";
+import { useAuth, User } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet } from "lucide-react";
@@ -117,7 +117,7 @@ function RequestRidePage() {
     const loadUserData = async () => {
         if (!user) return;
         setIsLoading(true);
-        const userProfile = await fetchUserProfile(user);
+        const userProfile = await fetchUserProfile(user as User);
         if (userProfile) {
             setHomeAddress(userProfile.homeAddress || null);
             setWorkAddress(userProfile.workAddress || null);
@@ -283,8 +283,10 @@ function RequestRidePage() {
   if (isLoading || !user) {
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground p-4 space-y-6 pb-24">
-             <h1 className="text-3xl font-bold"><Skeleton className="h-8 w-48"/></h1>
-             <Skeleton className="h-14 w-full rounded-full" />
+             <div className="bg-gradient-to-br from-primary to-secondary p-4 -m-4 pb-8 rounded-b-3xl">
+                <h1 className="text-3xl font-bold text-primary-foreground"><Skeleton className="h-8 w-48 bg-white/20"/></h1>
+                 <Skeleton className="mt-6 h-14 w-full rounded-full bg-white/20" />
+             </div>
              <Skeleton className="h-24 w-full rounded-lg" />
              <Separator/>
              <h2 className="text-lg font-semibold"><Skeleton className="h-6 w-32"/></h2>
@@ -392,7 +394,7 @@ function RequestRidePage() {
                     </div>
                  ) : (
                     <>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
+                         <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Home className="h-5 w-5 text-muted-foreground"/>
                             </div>
@@ -415,20 +417,21 @@ function RequestRidePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <main className="flex-1 p-4 space-y-6 pb-24">
+        <header className="bg-gradient-to-br from-primary to-secondary p-4 pb-8 rounded-b-3xl text-primary-foreground space-y-6">
             <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
             
             <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-200" />
                 <div
                     id="destination"
-                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-muted border-none"
+                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-black/20 border-none"
                 >
-                    <span className="text-muted-foreground">Para onde você vai?</span>
+                    <span className="text-primary-foreground/80">Para onde você vai?</span>
                 </div>
             </div>
-
-            <Card className="bg-primary/10 border-primary/20">
+        </header>
+        <main className="flex-1 p-4 space-y-6 pb-24 -mt-6">
+            <Card className="bg-card shadow-lg">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
