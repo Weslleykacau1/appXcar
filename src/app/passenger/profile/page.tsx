@@ -29,6 +29,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type ModalType = 'upload-photo' | null;
+type AddressType = 'home' | 'work';
+type SheetType = { type: 'address'; addressType: AddressType; } | null;
 
 interface Ride {
     id: string;
@@ -51,12 +53,14 @@ function PassengerProfilePage() {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [openModal, setOpenModal] = useState<ModalType>(null);
+    const [openSheet, setOpenSheet] = useState<SheetType>(null);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [isHistorySheetOpen, setIsHistorySheetOpen] = useState(false);
     const [rideHistory, setRideHistory] = useState<Ride[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     
     const [profileData, setProfileData] = useState<Partial<AuthUser>>({ name: '', email: '', phone: '', photoUrl: '', identityDocumentUrl: '', homeAddress: '', workAddress: '' });
+    const [addressInput, setAddressInput] = useState('');
     
     const idInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +121,11 @@ function PassengerProfilePage() {
             setIsHistoryLoading(false);
         }
     }
+    
+    const handleOpenAddressSheet = (addressType: AddressType) => {
+        setAddressInput( (addressType === 'home' ? profileData.homeAddress : profileData.workAddress) || '');
+        setOpenSheet({ type: 'address', addressType });
+    };
 
     const handleOpenHistory = () => {
         fetchRideHistory();
@@ -252,13 +261,28 @@ function PassengerProfilePage() {
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
-                homeAddress: profileData.homeAddress,
-                workAddress: profileData.workAddress,
             });
             toast({ title: t('toast.info_saved_title'), description: t('toast.info_saved_desc') });
             setIsEditingProfile(false);
         } catch (error) {
             toast({ variant: "destructive", title: t('toast.error_title'), description: t('toast.info_save_error_desc') });
+        }
+    };
+
+    const handleSaveAddress = async () => {
+        if (!user || !openSheet || openSheet.type !== 'address') return;
+    
+        const fieldToUpdate = openSheet.addressType === 'home' ? 'homeAddress' : 'workAddress';
+    
+        try {
+            const docRef = doc(db, "profiles", user.id);
+            await updateDoc(docRef, { [fieldToUpdate]: addressInput });
+            setProfileData(prev => ({ ...prev, [fieldToUpdate]: addressInput }));
+            toast({ title: t('toast.address_saved_title') });
+            setOpenSheet(null);
+        } catch (error) {
+            console.error("Error saving address:", error);
+            toast({ variant: "destructive", title: t('toast.error_title'), description: t('toast.address_save_error_desc') });
         }
     };
     
@@ -374,11 +398,36 @@ function PassengerProfilePage() {
                             <Label htmlFor="phone">{t('profile.form.phone')}</Label>
                             <Input id="phone" type="tel" value={profileData.phone || ''} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
                         </div>
-                        <div>
-                            <Label htmlFor="work">{t('profile.address.work')}</Label>
-                            <Input id="work" value={profileData.workAddress || ''} onChange={(e) => setProfileData({...profileData, workAddress: e.target.value})} placeholder={t('profile.address.add_work')} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
-                        </div>
                      </CardContent>
+                </Card>
+
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>{t('profile.address.saved_locations')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1">
+                        <button onClick={() => handleOpenAddressSheet('home')} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted">
+                            <div className="flex items-center gap-4">
+                                <Home className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold text-left">{t('profile.address.home')}</p>
+                                    <p className="text-sm text-muted-foreground text-left">{profileData.homeAddress || t('profile.address.add_home')}</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </button>
+                        <Separator />
+                        <button onClick={() => handleOpenAddressSheet('work')} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted">
+                            <div className="flex items-center gap-4">
+                                <Briefcase className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold text-left">{t('profile.address.work')}</p>
+                                    <p className="text-sm text-muted-foreground text-left">{profileData.workAddress || t('profile.address.add_work')}</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </button>
+                    </CardContent>
                 </Card>
 
                 <Card className="mt-6">
@@ -508,6 +557,32 @@ function PassengerProfilePage() {
                     </ScrollArea>
                 </SheetContent>
             </Sheet>
+
+            <Sheet open={!!openSheet} onOpenChange={(isOpen) => !isOpen && setOpenSheet(null)}>
+                <SheetContent side="bottom" className="rounded-t-xl">
+                    <SheetHeader>
+                        <SheetTitle>{openSheet?.addressType === 'home' ? t('profile.address.edit_home_title') : t('profile.address.edit_work_title')}</SheetTitle>
+                    </SheetHeader>
+                    <div className="py-4 space-y-4">
+                        <div>
+                            <Label htmlFor="address-input">{t('profile.address.full_address')}</Label>
+                            <Input
+                                id="address-input"
+                                value={addressInput}
+                                onChange={(e) => setAddressInput(e.target.value)}
+                                placeholder={t('profile.address.full_address_placeholder')}
+                            />
+                        </div>
+                    </div>
+                    <SheetFooter>
+                        <SheetClose asChild>
+                            <Button type="button" variant="outline">{t('common.cancel')}</Button>
+                        </SheetClose>
+                        <Button onClick={handleSaveAddress}>{t('profile.address.save_address_btn')}</Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
              <BottomNavBar role="passenger" />
         </div>
     );
