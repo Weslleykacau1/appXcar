@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MapGL, { Marker, Source, Layer, LngLatLike, MapRef } from 'react-map-gl';
 import type {LineLayer} from 'react-map-gl';
 import { useTheme } from 'next-themes';
-import { MapPin, Phone, Flag, Star, MessageSquare, Shield } from "lucide-react";
+import { MapPin, Phone, Flag, Star, MessageSquare, Shield, Circle } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { setItem, getItem, removeItem } from "@/lib/storage";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 
 
 interface RideData {
@@ -30,6 +31,7 @@ interface RideData {
   };
   pickupAddress: string;
   destination: string;
+  stops: { lat: number; lng: number, address: string }[];
   route: {
     pickup: { lat: number; lng: number };
     destination: { lat: number; lng: number };
@@ -42,7 +44,7 @@ interface RideData {
 const mockDriverLocation = { lat: -3.7327, lng: -38.5267 };
 const CURRENT_RIDE_KEY = 'current_ride_data';
 
-type RidePhase = 'to_pickup' | 'to_destination';
+type RidePhase = 'to_pickup' | 'arrived_at_pickup' | 'to_destination';
 
 function OnRidePage() {
   const { resolvedTheme } = useTheme();
@@ -131,13 +133,30 @@ function OnRidePage() {
         });
     }
   };
+  
+  const handleArrivedAtPickup = async () => {
+    if (!rideData) return;
+    try {
+        const rideDocRef = doc(db, "rides", rideData.id);
+        await updateDoc(rideDocRef, { status: 'arrived' });
+        setRidePhase('arrived_at_pickup');
+        toast({
+            title: "Você chegou!",
+            description: "Aguardando o passageiro.",
+        });
+    } catch (error) {
+        console.error("Error setting arrived status:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o status.' });
+    }
+  }
+
 
   const handleStartRide = async () => {
     if (!rideData) return;
 
     try {
         const rideDocRef = doc(db, "rides", rideData.id);
-        await updateDoc(rideDocRef, { status: 'arrived' });
+        await updateDoc(rideDocRef, { status: 'in_progress' });
 
         setRidePhase('to_destination');
         if (mapRef.current && rideData) {
@@ -193,6 +212,8 @@ function OnRidePage() {
     switch(ridePhase) {
         case 'to_pickup':
             return { title: 'Motorista a caminho', description: `Chega em ${eta} min.`, progress: 33 };
+        case 'arrived_at_pickup':
+            return { title: 'Passageiro aguardando', description: 'Encontre o passageiro no local.', progress: 50 };
         case 'to_destination':
             return { title: 'Viagem em andamento', description: 'Siga para o destino final.', progress: 66 };
         default:
@@ -226,6 +247,15 @@ function OnRidePage() {
         <Marker longitude={rideData.route.pickup.lng} latitude={rideData.route.pickup.lat}>
             <MapPin className="text-blue-500 h-10 w-10" fill="currentColor"/>
         </Marker>
+        
+         {rideData.stops.map((stop, index) => (
+          <Marker key={`stop-${index}`} longitude={stop.lng} latitude={stop.lat}>
+            <div className="bg-background rounded-full p-1 shadow-md">
+                <Circle className="text-orange-500 h-5 w-5" fill="currentColor"/>
+            </div>
+          </Marker>
+        ))}
+
         <Marker longitude={rideData.route.destination.lng} latitude={rideData.route.destination.lat}>
             <Flag className="text-green-500 h-10 w-10" fill="currentColor"/>
         </Marker>
@@ -289,21 +319,55 @@ function OnRidePage() {
 
             <Card className="bg-muted">
                 <CardContent className="p-3">
-                     <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-red-500 mt-1"/>
-                         <div>
-                            <p className="text-xs text-muted-foreground">Destino</p>
-                            <p className="font-semibold">{rideData.destination}</p>
+                    <div className="flex items-start gap-4">
+                        <div className="flex flex-col items-center mt-1">
+                           <MapPin className="h-5 w-5 text-blue-500" />
+                           {(rideData.stops.length > 0) && (
+                                <Separator orientation="vertical" className="h-6 my-1 bg-border" />
+                           )}
+                           {rideData.stops.map((_, index) => (
+                               <div key={`stop-icon-${index}`} className="flex flex-col items-center">
+                                 <Circle className="h-4 w-4 text-orange-500" />
+                                 <Separator orientation="vertical" className="h-6 my-1 bg-border" />
+                               </div>
+                           ))}
+                           <Flag className="h-5 w-5 text-green-500" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                            <div>
+                                <p className="text-xs text-muted-foreground">Partida</p>
+                                <p className="font-semibold leading-tight">{rideData.pickupAddress}</p>
+                            </div>
+                             {rideData.stops.map((stop, index) => (
+                                 <div key={`stop-addr-${index}`}>
+                                    <Separator className="my-2"/>
+                                    <p className="text-xs text-muted-foreground">Parada {index + 1}</p>
+                                    <p className="font-semibold leading-tight">{stop.address}</p>
+                                 </div>
+                             ))}
+                            <Separator className="my-2"/>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Destino</p>
+                                <p className="font-semibold leading-tight">{rideData.destination}</p>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {ridePhase === 'to_pickup' ? (
-                <Button onClick={handleStartRide} className="w-full h-12 text-base">
-                    Cheguei / Iniciar Corrida
+             {ridePhase === 'to_pickup' && (
+                <Button onClick={handleArrivedAtPickup} className="w-full h-12 text-base">
+                    Cheguei ao local de partida
                 </Button>
-            ) : (
+            )}
+
+            {ridePhase === 'arrived_at_pickup' && (
+                 <Button onClick={handleStartRide} className="w-full h-12 text-base">
+                    Iniciar Corrida
+                </Button>
+            )}
+
+            {ridePhase === 'to_destination' && (
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="destructive" className="w-full h-12 text-base">

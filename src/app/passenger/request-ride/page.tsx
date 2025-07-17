@@ -6,7 +6,7 @@ import { withAuth } from "@/components/with-auth";
 import { useAuth, User } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet } from "lucide-react";
+import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet, Circle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Map } from "@/components/map";
 import { cn } from "@/lib/utils";
@@ -247,7 +247,11 @@ function RequestRidePage() {
 
     const tripData = {
         pickup: pickupSuggestion, // Can be null for "Current Location"
-        stops: stopSuggestions.filter(s => s !== null) as Suggestion[],
+        stops: stopSuggestions.filter(s => s !== null).map(s => ({
+            lat: s!.center[1],
+            lng: s!.center[0],
+            address: s!.place_name,
+        })),
         destination: destinationSuggestion
     }
 
@@ -286,6 +290,7 @@ function RequestRidePage() {
     setDestinationSuggestion(newSuggestion);
     setDestinationInput(address);
     setIsPickingOnMap(false);
+    handleOpenTripPlanner(newSuggestion);
   };
   
   const reverseGeocode = useCallback(debounce(async (lng: number, lat: number) => {
@@ -699,4 +704,3 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
-
