@@ -63,7 +63,7 @@ function AcceptRidePage() {
     }
   }, [router]);
 
-  const lineColor = resolvedTheme === 'dark' ? '#FFFFFF' : '#000000';
+  const lineColor = resolvedTheme === 'dark' ? '#BB86FC' : '#6200EE';
 
   const routeLayer: LineLayer | null = rideData ? {
     id: 'route',
@@ -137,6 +137,26 @@ function AcceptRidePage() {
         console.log("A reprodução automática foi bloqueada pelo navegador:", error);
       });
     }
+
+    // Browser Notification API
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('Nova Solicitação de Corrida', {
+          body: 'Você tem uma nova solicitação de viagem.',
+          icon: '/favicon.ico' // opcional
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification('Nova Solicitação de Corrida', {
+              body: 'Você tem uma nova solicitação de viagem.',
+              icon: '/favicon.ico' // opcional
+            });
+          }
+        });
+      }
+    }
+
 
     return () => {
         if(audioRef.current) {
@@ -215,7 +235,7 @@ function AcceptRidePage() {
              <Progress value={(timeLeft / 15) * 100} className="absolute top-0 left-0 w-full h-1 rounded-none [&>div]:bg-green-400" />
              <div className="flex justify-between items-center">
                 <div>
-                  <Badge variant="secondary" className="bg-green-600/80 text-white border-none">
+                  <Badge variant="destructive" className="bg-green-600/80 text-white border-none">
                     <Zap className="h-4 w-4 mr-1.5"/>
                     Alta demanda
                   </Badge>

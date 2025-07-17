@@ -58,8 +58,6 @@ function DriverProfilePage() {
     const [isHistorySheetOpen, setIsHistorySheetOpen] = useState(false);
     const [rideHistory, setRideHistory] = useState<Ride[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-    const [notificationSound, setNotificationSound] = useState('sound1');
-
 
     const [profileData, setProfileData] = useState({ name: '', email: '', phone: '', photoUrl: '', cnhUrl: '', crlvUrl: '' });
     const [vehicleData, setVehicleData] = useState({ model: '', licensePlate: '', color: '', year: '' });
@@ -71,8 +69,6 @@ function DriverProfilePage() {
     const cnhInputRef = useRef<HTMLInputElement>(null);
     const crlvInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
-    const sound1Ref = useRef<HTMLAudioElement>(null);
-    const sound2Ref = useRef<HTMLAudioElement>(null);
 
 
     const fetchProfileData = async () => {
@@ -306,20 +302,6 @@ function DriverProfilePage() {
             toast({ variant: "destructive", title: t('toast.error_title'), description: t('toast.photo_save_error_desc') });
         }
     }
-
-    const handleSoundPreview = (sound: 'sound1' | 'sound2') => {
-        sound1Ref.current?.pause();
-        sound2Ref.current?.pause();
-
-        if (sound === 'sound1' && sound1Ref.current) {
-            sound1Ref.current.currentTime = 0;
-            sound1Ref.current.play();
-        } else if (sound === 'sound2' && sound2Ref.current) {
-            sound2Ref.current.currentTime = 0;
-            sound2Ref.current.play();
-        }
-        setNotificationSound(sound);
-    }
     
     if (!user || isLoading) {
          return <div className="flex h-screen w-full items-center justify-center">{t('common.loading')}</div>;
@@ -530,19 +512,10 @@ function DriverProfilePage() {
                         <div className="flex items-start justify-between gap-4">
                             <Bell className="h-6 w-6 text-muted-foreground mt-1" />
                             <div className="flex-1">
-                                <p className="font-medium">{t('profile.settings.notification_sounds')}</p>
+                                <p className="font-medium">{t('profile.settings.notifications')}</p>
                                 <p className="text-sm text-muted-foreground">{t('profile.settings.notification_sounds_desc')}</p>
                             </div>
-                             <RadioGroup value={notificationSound} onValueChange={(value) => handleSoundPreview(value as 'sound1' | 'sound2')} className="flex gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="sound1" id="sound1" />
-                                    <Label htmlFor="sound1" onClick={() => handleSoundPreview('sound1')} className="cursor-pointer">Som 1</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="sound2" id="sound2" />
-                                    <Label htmlFor="sound2" onClick={() => handleSoundPreview('sound2')} className="cursor-pointer">Som 2</Label>
-                                </div>
-                            </RadioGroup>
+                            <Switch defaultChecked />
                         </div>
                             <Separator />
                         <div className="flex items-start justify-between gap-4">
@@ -606,9 +579,6 @@ function DriverProfilePage() {
                 </div>
             </main>
             
-            <audio ref={sound1Ref} src="https://cdn.pixabay.com/audio/2022/10/13/audio_a46c0b1539.mp3" preload="auto" />
-            <audio ref={sound2Ref} src="https://cdn.pixabay.com/audio/2022/11/17/audio_8e91626ac9.mp3" preload="auto" />
-
             <Dialog open={!!openModal} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <ModalContent />
             </Dialog>
