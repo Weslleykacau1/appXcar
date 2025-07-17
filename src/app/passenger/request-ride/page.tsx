@@ -82,11 +82,12 @@ function RequestRidePage() {
   const router = useRouter();
   
   const mapRef = useRef<MapRef>(null);
-  const [activeInput, setActiveInput] = useState<'pickup' | 'destination' | 'stop1' | 'stop2' | null>(null);
+  const [activeInput, setActiveInput] = useState<'pickup' | 'destination' | 'stop1' | 'stop2' | 'shortcut' | null>(null);
 
   const [pickupInput, setPickupInput] = useState("Localidade atual");
   const [destinationInput, setDestinationInput] = useState("");
   const [stopInputs, setStopInputs] = useState<string[]>([]);
+  const [shortcutInput, setShortcutInput] = useState("");
   
   const [pickupSuggestion, setPickupSuggestion] = useState<Suggestion | null>(null);
   const [destinationSuggestion, setDestinationSuggestion] = useState<Suggestion | null>(null);
@@ -95,6 +96,7 @@ function RequestRidePage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
   const [isPickingOnMap, setIsPickingOnMap] = useState(false);
+  const [isAddingShortcut, setIsAddingShortcut] = useState(false);
   const [pickedLocation, setPickedLocation] = useState<{address: string, coords: LngLatLike} | null>(null);
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,7 +179,7 @@ function RequestRidePage() {
   
   const debouncedFetchSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), [mapboxToken]);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'pickup' | 'destination' | 'stop', index?: number) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'pickup' | 'destination' | 'stop' | 'shortcut', index?: number) => {
     const value = e.target.value;
      if (type === 'pickup') {
         setPickupInput(value);
@@ -190,6 +192,9 @@ function RequestRidePage() {
         newStops[index] = value;
         setStopInputs(newStops);
         setActiveInput(`stop${index+1}` as 'stop1' | 'stop2');
+    } else if (type === 'shortcut') {
+        setShortcutInput(value);
+        setActiveInput('shortcut');
     }
     debouncedFetchSuggestions(value);
   };
@@ -210,6 +215,11 @@ function RequestRidePage() {
         const newStopInputs = [...stopInputs];
         newStopInputs[index] = suggestion.place_name;
         setStopInputs(newStopInputs);
+    } else if (activeInput === 'shortcut') {
+        // Logic to handle shortcut saving will be added here later.
+        console.log("Selected shortcut address:", suggestion);
+        toast({ title: "Endereço selecionado", description: "Próximo passo: salvar como atalho." });
+        setShortcutInput(suggestion.place_name);
     }
     setSuggestions([]);
     setActiveInput(null);
@@ -329,6 +339,47 @@ function RequestRidePage() {
 
   const firstName = user.name.split(' ')[0];
 
+
+  if (isAddingShortcut) {
+      return (
+        <div className="flex flex-col h-screen bg-background text-foreground">
+            <header className="flex items-center p-4 border-b">
+                 <Button variant="ghost" size="icon" className="-ml-2" onClick={() => setIsAddingShortcut(false)}>
+                    <X className="h-6 w-6" />
+                </Button>
+                <h1 className="text-xl font-bold mx-auto">Adicionar atalho</h1>
+                <div className="w-8"></div>
+            </header>
+             <main className="flex-1 flex flex-col p-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                        placeholder="Informe o endereço"
+                        className="h-12 text-base pl-10 rounded-lg border-primary/50 focus-visible:ring-primary/50"
+                        value={shortcutInput}
+                        onChange={(e) => handleInputChange(e, 'shortcut')}
+                        onFocus={() => setActiveInput('shortcut')}
+                    />
+                </div>
+                 {suggestions.length > 0 && activeInput === 'shortcut' && (
+                    <div className="space-y-1 mt-4">
+                        {suggestions.map((suggestion) => (
+                             <button key={suggestion.id} className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(suggestion)}>
+                               <div className="p-3 bg-muted rounded-full">
+                                 <MapPin className="h-5 w-5 text-muted-foreground"/>
+                               </div>
+                               <div>
+                                <p className="font-semibold">{suggestion.text}</p>
+                                <p className="text-sm text-muted-foreground">{suggestion.place_name.replace(`${suggestion.text}, `, '')}</p>
+                               </div>
+                             </button>
+                        ))}
+                    </div>
+                 )}
+            </main>
+        </div>
+      )
+  }
 
   if (isPickingOnMap) {
     return (
@@ -469,7 +520,7 @@ function RequestRidePage() {
                              </div>
                              <span className="font-semibold">Definir no mapa</span>
                         </button>
-                        <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2">
+                        <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2" onClick={() => setIsAddingShortcut(true)}>
                              <div className="p-3 bg-muted rounded-full">
                                 <Star className="h-5 w-5 text-yellow-500" />
                              </div>
@@ -500,7 +551,7 @@ function RequestRidePage() {
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-             <Card className="bg-card shadow-lg">
+             <Card className="bg-card shadow-lg -mt-16">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
