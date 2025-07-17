@@ -102,6 +102,8 @@ function RequestRidePage() {
   const [pickedLocation, setPickedLocation] = useState<{address: string, coords: LngLatLike} | null>(null);
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
 
   const { toast } = useToast();
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -168,6 +170,17 @@ function RequestRidePage() {
       timeout = setTimeout(() => func(...args), delay);
     };
   };
+  
+    const reverseGeocode = useCallback(async (lng: number, lat: number): Promise<Suggestion | null> => {
+        if (!mapboxToken) return null;
+        const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&limit=1&types=address,poi&language=pt`);
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+            return data.features[0];
+        }
+        return null;
+    }, [mapboxToken]);
+
 
   const fetchSuggestions = async (query: string) => {
     if (query.length < 3 || !mapboxToken) {
@@ -226,18 +239,40 @@ function RequestRidePage() {
     // Do not set activeInput to null here for the shortcut flow
   };
   
-  const handleOpenTripPlanner = (destination?: Suggestion) => {
-    // Reset state for new planning session
-    setPickupInput("Localidade atual");
-    setDestinationInput(destination ? destination.place_name : "");
-    setStopInputs([]);
-    setPickupSuggestion(null);
-    setDestinationSuggestion(destination || null);
-    setStopSuggestions([]);
-    setSuggestions([]);
-    setActiveInput(destination ? null : 'destination');
-    setIsPlanningTrip(true);
-  }
+    const handleOpenTripPlanner = useCallback(async (destination?: Suggestion) => {
+        setIsGettingLocation(true);
+        // Reset state for new planning session
+        setDestinationInput(destination ? destination.place_name : "");
+        setStopInputs([]);
+        setDestinationSuggestion(destination || null);
+        setStopSuggestions([]);
+        setSuggestions([]);
+        
+        try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+            });
+            const { longitude, latitude } = position.coords;
+            const currentLocSuggestion = await reverseGeocode(longitude, latitude);
+
+            if (currentLocSuggestion) {
+                setPickupInput(currentLocSuggestion.place_name);
+                setPickupSuggestion(currentLocSuggestion);
+            } else {
+                 setPickupInput("Localização Atual (não foi possível obter o nome)");
+                 setPickupSuggestion(null); // Explicitly set to null if geocoding fails
+            }
+        } catch (error) {
+            console.error("Failed to get location or geocode:", error);
+            toast({ variant: 'destructive', title: 'Erro de Localização', description: 'Não foi possível obter sua localização atual.' });
+            setPickupInput("Erro ao obter localização");
+            setPickupSuggestion(null);
+        } finally {
+            setIsGettingLocation(false);
+            setActiveInput(destination ? null : 'destination');
+            setIsPlanningTrip(true);
+        }
+    }, [reverseGeocode, toast]);
 
   const handleConfirmTrip = () => {
     if (!destinationSuggestion) {
@@ -272,36 +307,37 @@ function RequestRidePage() {
     setStopSuggestions(newStopSuggestions);
   };
   
-  const handleConfirmPickedLocation = () => {
-    if (!pickedLocation) return;
-    const { address, coords } = pickedLocation;
+    const handleConfirmPickedLocation = () => {
+        if (!pickedLocation || !pickedLocation.coords) return;
+        const { address, coords } = pickedLocation;
 
-    const newSuggestion: Suggestion = {
-      id: `mapbox-place.${(coords as number[]).join(',')}`,
-      text: address.split(',')[0],
-      place_name: address,
-      center: coords as [number, number],
+        const [lng, lat] = Array.isArray(coords) ? coords : [coords.lng, coords.lat];
+        
+        const newSuggestion: Suggestion = {
+            id: `mapbox-place.${lng},${lat}`,
+            text: address.split(',')[0],
+            place_name: address,
+            center: [lng, lat],
+        };
+
+        setIsPickingOnMap(false);
+        handleOpenTripPlanner(newSuggestion);
     };
 
-    setDestinationSuggestion(newSuggestion);
-    setDestinationInput(address);
-    setIsPickingOnMap(false);
-    handleOpenTripPlanner(newSuggestion);
-  };
   
-  const reverseGeocode = useCallback(debounce(async (lng: number, lat: number) => {
-    if (!mapboxToken) return;
-    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&limit=1&types=address,poi`);
-    const data = await response.json();
-    if (data.features && data.features.length > 0) {
-      const address = data.features[0].place_name;
-      const coords: LngLatLike = [lng, lat];
-      setPickedLocation({ address, coords });
-    } else {
-      const coords: LngLatLike = [lng, lat];
-      setPickedLocation({ address: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`, coords });
-    }
-  }, 300), [mapboxToken]);
+    const debouncedReverseGeocode = useCallback(debounce(async (lng: number, lat: number) => {
+        if (!mapboxToken) return;
+        const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&limit=1&types=address,poi`);
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+        const address = data.features[0].place_name;
+        const coords: LngLatLike = [lng, lat];
+        setPickedLocation({ address, coords });
+        } else {
+        const coords: LngLatLike = [lng, lat];
+        setPickedLocation({ address: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`, coords });
+        }
+    }, 300), [mapboxToken]);
 
    const handleShortcutClick = async (type: 'home' | 'work') => {
         const address = type === 'home' ? homeAddress : workAddress;
@@ -439,7 +475,7 @@ function RequestRidePage() {
     return (
         <div className="h-screen w-screen relative flex flex-col bg-background text-foreground">
              <div className="absolute inset-0 z-0">
-                <Map mapRef={mapRef} onMove={(evt) => reverseGeocode(evt.viewState.longitude, evt.viewState.latitude)} />
+                <Map mapRef={mapRef} onMove={(evt) => debouncedReverseGeocode(evt.viewState.longitude, evt.viewState.latitude)} />
             </div>
 
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
@@ -619,12 +655,20 @@ function RequestRidePage() {
             
             <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground dark:text-white/80" />
-                <div
+                <button
                     id="destination"
-                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#f2eefc] dark:bg-[#2a2733] border border-transparent dark:border-none"
+                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#f2eefc] dark:bg-[#2a2733] border border-transparent dark:border-none text-left"
+                    disabled={isGettingLocation}
                 >
-                    <span className="text-muted-foreground dark:text-white/80">Para onde você vai?</span>
-                </div>
+                    {isGettingLocation ? (
+                        <div className="flex items-center gap-2 text-muted-foreground dark:text-white/80">
+                           <Loader2 className="h-5 w-5 animate-spin" />
+                           <span>Obtendo localização...</span>
+                        </div>
+                    ) : (
+                       <span className="text-muted-foreground dark:text-white/80">Para onde você vai?</span>
+                    )}
+                </button>
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
@@ -708,4 +752,3 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
-
