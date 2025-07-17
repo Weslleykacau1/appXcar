@@ -47,6 +47,7 @@ interface FoundDriver {
 
 interface Suggestion {
   id: string;
+  text: string;
   place_name: string;
   center: [number, number];
 }
@@ -101,7 +102,6 @@ function RequestRidePage() {
   
   const [destinationInput, setDestinationInput] = useState("");
   const [destinationSuggestions, setDestinationSuggestions] = useState<Suggestion[]>([]);
-  const [isDestinationSuggestionsOpen, setIsDestinationSuggestionsOpen] = useState(false);
   
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
 
@@ -173,7 +173,6 @@ function RequestRidePage() {
     const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&autocomplete=true&country=BR&language=pt&proximity=-38.5267,-3.7327`);
     const data = await response.json();
     setDestinationSuggestions(data.features);
-    setIsDestinationSuggestionsOpen(data.features.length > 0);
   };
   
   const debouncedFetchDestinationSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), []);
@@ -194,7 +193,6 @@ function RequestRidePage() {
     setIsPlanningTrip(true);
     setDestinationInput("");
     setDestinationSuggestions([]);
-    setIsDestinationSuggestionsOpen(false);
   }
 
 
@@ -228,51 +226,54 @@ function RequestRidePage() {
                                     <p className="font-semibold">Localidade atual</p>
                                 </div>
                                 <Separator/>
-                                <Popover open={isDestinationSuggestionsOpen} onOpenChange={setIsDestinationSuggestionsOpen}>
-                                    <PopoverAnchor asChild>
-                                        <div className="relative space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Destino</Label>
-                                            <Input
-                                                id="destination-planner"
-                                                placeholder="Para onde?"
-                                                className="border-none p-0 h-auto font-semibold focus-visible:ring-0"
-                                                required
-                                                value={destinationInput}
-                                                onChange={handleDestinationChange}
-                                                autoComplete="off"
-                                                autoFocus
-                                            />
-                                        </div>
-                                    </PopoverAnchor>
-                                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1 mt-2">
-                                        {destinationSuggestions.map((suggestion) => (
-                                            <Button key={suggestion.id} variant="ghost" className="w-full justify-start text-left h-auto py-2 px-3 whitespace-normal" onClick={() => handleSelectSuggestion(suggestion)}>
-                                            {suggestion.place_name}
-                                            </Button>
-                                        ))}
-                                    </PopoverContent>
-                                </Popover>
+                                 <div className="relative space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Destino</Label>
+                                    <Input
+                                        id="destination-planner"
+                                        placeholder="Para onde?"
+                                        className="border-none p-0 h-auto font-semibold focus-visible:ring-0"
+                                        required
+                                        value={destinationInput}
+                                        onChange={handleDestinationChange}
+                                        autoComplete="off"
+                                        autoFocus
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <Separator/>
-                        <Button variant="ghost" className="p-0 h-auto gap-2 text-primary">
-                            <Plus className="h-5 w-5"/> Adicionar Parada
-                        </Button>
                     </CardContent>
                 </Card>
                 
-                 <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
-                    <div className="p-3 bg-muted rounded-full">
-                        <Home className="h-5 w-5 text-muted-foreground"/>
+                 {destinationSuggestions.length === 0 ? (
+                    <>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
+                            <div className="p-3 bg-muted rounded-full">
+                                <Home className="h-5 w-5 text-muted-foreground"/>
+                            </div>
+                            <p className="font-semibold">Casa</p>
+                        </button>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => workAddress && handleSelectSuggestion(workAddress)}>
+                            <div className="p-3 bg-muted rounded-full">
+                                <Briefcase className="h-5 w-5 text-muted-foreground"/>
+                            </div>
+                            <p className="font-semibold">Trabalho</p>
+                        </button>
+                    </>
+                 ) : (
+                    <div className="space-y-1">
+                        {destinationSuggestions.map((suggestion) => (
+                             <button key={suggestion.id} className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(suggestion)}>
+                               <div className="p-3 bg-muted rounded-full">
+                                 <MapPin className="h-5 w-5 text-muted-foreground"/>
+                               </div>
+                               <div>
+                                <p className="font-semibold">{suggestion.text}</p>
+                                <p className="text-sm text-muted-foreground">{suggestion.place_name.replace(`${suggestion.text}, `, '')}</p>
+                               </div>
+                             </button>
+                        ))}
                     </div>
-                    <p className="font-semibold">Casa</p>
-                </button>
-                 <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => workAddress && handleSelectSuggestion(workAddress)}>
-                    <div className="p-3 bg-muted rounded-full">
-                        <Briefcase className="h-5 w-5 text-muted-foreground"/>
-                    </div>
-                    <p className="font-semibold">Trabalho</p>
-                </button>
+                 )}
 
             </main>
         </div>
@@ -345,4 +346,3 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
-
