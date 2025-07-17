@@ -938,7 +938,7 @@ function AdminDashboard() {
                                      <div className="space-y-2">
                                         <Label>Imagem da Categoria</Label>
                                         <div className="flex items-center gap-4">
-                                             <Image src={fares.comfort.imageUrl} alt="Comfort" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
+                                             <Image src={fares.comfort.imageUrl || 'https://placehold.co/100x50.png'} alt="Comfort" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
                                              <Input type="file" ref={comfortFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'comfort')} />
                                              <Button variant="outline" size="sm" onClick={() => comfortFileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/>Alterar</Button>
                                         </div>
@@ -968,7 +968,7 @@ function AdminDashboard() {
                                      <div className="space-y-2">
                                         <Label>Imagem da Categoria</Label>
                                         <div className="flex items-center gap-4">
-                                             <Image src={fares.executive.imageUrl} alt="Executive" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
+                                             <Image src={fares.executive.imageUrl || 'https://placehold.co/100x50.png'} alt="Executive" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
                                              <Input type="file" ref={executiveFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'executive')} />
                                              <Button variant="outline" size="sm" onClick={() => executiveFileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/>Alterar</Button>
                                         </div>
@@ -1244,5 +1244,7 @@ function AdminDashboard() {
 }
 
 export default withAuth(AdminDashboard, ["admin"]);
+
+    
 
     
