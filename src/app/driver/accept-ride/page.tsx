@@ -14,6 +14,9 @@ import { User, Star, X, Check, MapPin, Zap } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { Progress } from "@/components/ui/progress";
 import { getItem, removeItem, setItem } from "@/lib/storage";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useAuth } from "@/context/auth-context";
 
 interface RideRequest {
   id: string;
@@ -42,6 +45,7 @@ const NOTIFICATION_SOUND_URL = "https://cdn.pixabay.com/audio/2022/03/15/audio_2
 
 
 function AcceptRidePage() {
+  const { user: driver } = useAuth();
   const { resolvedTheme } = useTheme();
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const router = useRouter();
@@ -84,10 +88,25 @@ function AcceptRidePage() {
     }
 } : null;
 
-  const handleAcceptRide = () => {
+  const handleAcceptRide = async () => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    if (!rideData || !driver) return;
+    
+    // Update ride status in Firestore
+    const rideDocRef = doc(db, "rides", rideData.id);
+    const driverProfileSnap = await getDoc(doc(db, "profiles", driver.id));
+    const driverProfile = driverProfileSnap.data();
+
+    await updateDoc(rideDocRef, {
+      driverId: driver.id,
+      driverName: driver.name,
+      status: 'accepted',
+      driverVehicleModel: driverProfile?.vehicle_model || 'N/A',
+      driverVehiclePlate: driverProfile?.vehicle_license_plate || 'N/A',
+    });
+
     // Set ride data for the next page
     setItem(CURRENT_RIDE_KEY, rideData);
     removeItem(RIDE_REQUEST_KEY); // Clear the request

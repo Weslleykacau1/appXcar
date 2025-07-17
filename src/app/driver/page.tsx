@@ -14,7 +14,7 @@ import { getItem, setItem } from '@/lib/storage';
 import { AvailableRidesDrawer } from '@/components/available-rides-drawer';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { BottomNavBar } from '@/components/bottom-nav-bar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,8 +31,8 @@ const surgeZones = [
 
 const RIDE_REQUEST_KEY = 'pending_ride_request';
 const DRIVER_ONLINE_STATUS_KEY = 'driver_online_status';
-const NOTIFICATION_SOUND_URL = "https://cdn.pixabay.com/audio/2022/03/15/audio_2c4102c9a2.mp3";
 const PAYMENT_PREFERENCES_KEY = 'driver_payment_preferences';
+const CURRENT_RIDE_KEY = 'current_ride_data';
 
 
 function DriverDashboard() {
@@ -53,36 +53,19 @@ function DriverDashboard() {
   const [showEarnings, setShowEarnings] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [pendingRidesCount, setPendingRidesCount] = useState(0);
-  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
-  const isInitialLoad = useRef(true);
   const [paymentPreferences, setPaymentPreferences] = useState<Record<PaymentMethod, boolean>>({
     'Cartão': true,
     'PIX': true,
     'Dinheiro': true,
   });
 
+  // Load initial data
   useEffect(() => {
-    // Load payment preferences
     const savedPreferences = getItem<Record<PaymentMethod, boolean>>(PAYMENT_PREFERENCES_KEY);
     if (savedPreferences) {
         setPaymentPreferences(savedPreferences);
     }
-
-     // Get initial location
-     navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { longitude, latitude } = position.coords;
-            const newLocation = { longitude, latitude };
-            if (!userLocation) {
-                 setViewState(prevState => ({ ...prevState, ...newLocation, zoom: 15 }));
-            }
-            setUserLocation(newLocation);
-        },
-        (error) => console.error("Error getting initial user location:", error),
-        { enableHighAccuracy: true }
-    );
     
-    // Get earnings and online status from session storage
     const storedEarnings = parseFloat(sessionStorage.getItem('today_earnings') || '0');
     setTodayEarnings(storedEarnings);
     const storedRides = parseInt(sessionStorage.getItem('today_rides') || '0', 10);
@@ -91,78 +74,79 @@ function DriverDashboard() {
     if (storedOnlineStatus) {
         setIsOnline(JSON.parse(storedOnlineStatus));
     }
-    
-    const q = query(collection(db, "rides"), where("status", "==", "pending"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const newCount = querySnapshot.size;
-        
-        if (!isInitialLoad.current && newCount > pendingRidesCount) {
-             notificationAudioRef.current?.play().catch(e => console.error("Error playing sound:", e));
-        }
+  }, []);
 
-        setPendingRidesCount(newCount);
-        isInitialLoad.current = false;
-    });
-    
-    return () => unsubscribe();
+  const handleSetOnlineStatus = (status: boolean) => {
+    setIsOnline(status);
+    sessionStorage.setItem(DRIVER_ONLINE_STATUS_KEY, JSON.stringify(status));
+  }
 
-   }, [pendingRidesCount]);
-   
-   const handleSetOnlineStatus = (status: boolean) => {
-       setIsOnline(status);
-       sessionStorage.setItem(DRIVER_ONLINE_STATUS_KEY, JSON.stringify(status));
-   }
-
-
+  // Effect for handling ride listening and location tracking when online
   useEffect(() => {
     if (isOnline) {
-      // Start watching position when driver goes online
+      // Start watching position
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const { longitude, latitude } = position.coords;
-          setUserLocation({ longitude, latitude });
-        },
-        (error) => {
-          console.error("Error watching user location:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0,
-        }
+        (position) => setUserLocation(position.coords),
+        (error) => console.error("Error watching location:", error),
+        { enableHighAccuracy: true }
       );
+      
+      const paymentPrefs = getItem<Record<PaymentMethod, boolean>>(PAYMENT_PREFERENCES_KEY) || paymentPreferences;
+      const acceptedMethods = Object.keys(paymentPrefs).filter(k => paymentPrefs[k as PaymentMethod]);
+      
+      // Listen for new rides
+      const q = query(collection(db, "rides"), where("status", "==", "pending"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setPendingRidesCount(snapshot.size);
 
-       // This logic is now handled by the drawer, but we can keep it as a fallback
-       const rideCheckInterval = setInterval(() => {
-        const rideRequest = getItem(RIDE_REQUEST_KEY);
-        if (rideRequest) {
-            console.log("Found ride request, navigating...");
-            router.push('/driver/accept-ride');
+        // Check for an already active ride to avoid showing a new one
+        if (getItem(CURRENT_RIDE_KEY)) {
+          return;
         }
-      }, 5000); 
+
+        const newRides = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const availableRide = newRides.find(ride => acceptedMethods.includes(ride.paymentMethod));
+        
+        if (availableRide) {
+          const rideRequest = {
+            id: availableRide.id,
+            fare: availableRide.fare,
+            pickupAddress: availableRide.pickupAddress,
+            destination: availableRide.destinationAddress,
+            tripDistance: availableRide.route?.distance || 0,
+            tripTime: availableRide.route?.duration ? Math.ceil(availableRide.route.duration) : 0,
+            rideCategory: availableRide.category,
+            passenger: {
+              name: availableRide.passengerName,
+              avatarUrl: availableRide.passengerPhotoUrl || '',
+              rating: 4.8, // Placeholder
+              phone: '5511999999999' // Placeholder
+            },
+            route: {
+              pickup: { lat: availableRide.pickupCoords.lat, lng: availableRide.pickupCoords.lng },
+              destination: { lat: availableRide.destinationCoords.lat, lng: availableRide.destinationCoords.lng },
+              coordinates: JSON.parse(availableRide.route?.coordinates || '[]')
+            }
+          };
+          setItem(RIDE_REQUEST_KEY, rideRequest);
+          router.push('/driver/accept-ride');
+        }
+      });
 
       return () => {
+        unsubscribe();
         if (watchIdRef.current !== null) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
+          navigator.geolocation.clearWatch(watchIdRef.current);
         }
-        clearInterval(rideCheckInterval);
-      }
-
+      };
     } else {
-      // Stop watching when driver goes offline
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
     }
+  }, [isOnline, router, paymentPreferences]);
 
-    return () => {
-      // Cleanup the watch on component unmount
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, [isOnline, router]);
 
   const mapStyle = resolvedTheme === 'dark' 
     ? 'mapbox://styles/mapbox/dark-v11' 
@@ -178,36 +162,6 @@ function DriverDashboard() {
     }
   };
 
-  const handleTestRide = () => {
-      const testRideRequest = {
-        fare: 25.50,
-        pickupAddress: "Av. Beira Mar, 123, Fortaleza",
-        destination: "Shopping Iguatemi Bosque",
-        tripDistance: 8.2, 
-        tripTime: 20,
-        rideCategory: 'Comfort',
-        passenger: {
-            name: 'Passageiro Teste',
-            avatarUrl: `https://placehold.co/80x80.png`,
-            rating: 4.8,
-            phone: '5511999999999'
-        },
-        route: {
-            pickup: { lat: -3.722, lng: -38.50 },
-            destination: { lat: -3.755, lng: -38.495 },
-            coordinates: [
-                [-38.5267, -3.7327],
-                [-38.52, -3.735],
-                [-38.51, -3.74],
-                [-38.50, -3.745],
-                [-38.495, -3.755]
-            ]
-        }
-    };
-    setItem(RIDE_REQUEST_KEY, testRideRequest);
-    router.push('/driver/accept-ride');
-  };
-
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -217,7 +171,6 @@ function DriverDashboard() {
       setPaymentPreferences(newPreferences);
       setItem(PAYMENT_PREFERENCES_KEY, newPreferences);
   };
-
 
   if (!mapboxToken) {
     return (
@@ -231,12 +184,15 @@ function DriverDashboard() {
   
   return (
       <div className="h-screen w-screen relative overflow-hidden flex flex-col">
-          <audio ref={notificationAudioRef} src={NOTIFICATION_SOUND_URL} preload="auto" />
           <div className="flex-1 relative">
             <MapGL
                 ref={mapRef}
                 mapboxAccessToken={mapboxToken}
-                {...viewState}
+                initialViewState={{
+                    longitude: -38.5267,
+                    latitude: -3.7327,
+                    zoom: 12
+                }}
                 onMove={evt => setViewState(evt.viewState)}
                 style={{width: '100%', height: '100%'}}
                 mapStyle={mapStyle}
@@ -426,5 +382,3 @@ function DriverDashboard() {
 }
 
 export default withAuth(DriverDashboard, ["driver"]);
-
-    
