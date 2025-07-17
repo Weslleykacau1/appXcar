@@ -109,7 +109,7 @@ function RequestRidePage() {
 
 
   const geocodeAddress = useCallback(async (address: string): Promise<Suggestion | null> => {
-    if (!mapboxToken) return null;
+    if (!mapboxToken || !address) return null;
     const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}&limit=1&country=BR&language=pt`);
     const data = await response.json();
     if (data.features && data.features.length > 0) {
@@ -234,7 +234,7 @@ function RequestRidePage() {
     setDestinationSuggestion(destination || null);
     setStopSuggestions([]);
     setSuggestions([]);
-    setActiveInput('destination');
+    setActiveInput(destination ? null : 'destination');
     setIsPlanningTrip(true);
   }
 
@@ -300,6 +300,21 @@ function RequestRidePage() {
       setPickedLocation({ address: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`, coords });
     }
   }, 300), [mapboxToken]);
+
+   const handleShortcutClick = async (type: 'home' | 'work') => {
+        const address = type === 'home' ? homeAddress : workAddress;
+        if (address) {
+            const suggestion = await geocodeAddress(address);
+            if (suggestion) {
+                handleOpenTripPlanner(suggestion);
+            } else {
+                toast({ variant: 'destructive', title: 'Endereço não encontrado', description: 'Não foi possível localizar o endereço salvo.' });
+            }
+        } else {
+            toast({ title: 'Adicionar Endereço', description: 'Adicione seu endereço de casa no perfil.' });
+            router.push('/passenger/profile');
+        }
+    };
 
   if (isLoading || !user) {
     return (
@@ -551,7 +566,7 @@ function RequestRidePage() {
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-             <Card className="bg-card shadow-lg -mt-16">
+             <Card className="bg-card shadow-lg">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
@@ -562,6 +577,30 @@ function RequestRidePage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <div className="flex justify-around gap-2">
+                <button 
+                    onClick={() => handleShortcutClick('home')}
+                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
+                >
+                    <Home className="h-6 w-6 text-primary"/>
+                    <span className="text-sm font-semibold">Casa</span>
+                </button>
+                 <button 
+                    onClick={() => handleShortcutClick('work')}
+                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
+                >
+                    <Briefcase className="h-6 w-6 text-primary"/>
+                    <span className="text-sm font-semibold">Trabalho</span>
+                </button>
+                 <button 
+                    onClick={() => toast({title: "Em breve!", description: "Você poderá adicionar mais atalhos aqui."})}
+                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
+                >
+                    <Plus className="h-6 w-6 text-primary"/>
+                    <span className="text-sm font-semibold">Adicionar</span>
+                </button>
+            </div>
             
             <Separator />
             
