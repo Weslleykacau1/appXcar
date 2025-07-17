@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { withAuth } from "@/components/with-auth";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Car, DollarSign, ShieldCheck, MoreHorizontal, FileCheck2, AlertCircle, X, Check, FileText, Settings, Save, UserPlus, Moon, ThumbsUp, ThumbsDown, Trash2, UserX, Edit, User as UserIcon, Shield, ListVideo, Zap } from "lucide-react";
+import { Users, Car, DollarSign, ShieldCheck, MoreHorizontal, FileCheck2, AlertCircle, X, Check, FileText, Settings, Save, UserPlus, Moon, ThumbsUp, ThumbsDown, Trash2, UserX, Edit, User as UserIcon, Shield, ListVideo, Zap, Upload } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -35,12 +35,14 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { RideRequestsDrawer } from "@/components/ride-requests-drawer";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { executiveCarImage, viagemCarImage } from "@/lib/images";
 
 
 type UserRole = "passageiro" | "motorista" | "admin";
 type UserStatus = "Ativo" | "Suspenso";
 type VerificationStatus = "Verificado" | "Pendente" | "Rejeitado";
 type TimePeriod = "total" | "7d" | "15d" | "30d";
+type RideCategory = "comfort" | "executive";
 
 
 interface User {
@@ -112,13 +114,15 @@ const defaultFares = {
         baseFare: "3.50",
         costPerMinute: "0.45",
         costPerKm: "1.50",
-        bookingFee: "2.00"
+        bookingFee: "2.00",
+        imageUrl: viagemCarImage
     },
     executive: {
         baseFare: "2.50",
         costPerMinute: "0.30",
         costPerKm: "1.20",
-        bookingFee: "2.00"
+        bookingFee: "2.00",
+        imageUrl: executiveCarImage
     }
 };
 
@@ -141,6 +145,9 @@ function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [pendingRidesCount, setPendingRidesCount] = useState(0);
+
+  const comfortFileInputRef = useRef<HTMLInputElement>(null);
+  const executiveFileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
@@ -276,6 +283,23 @@ function AdminDashboard() {
             [field]: e.target.value
         }
     }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, category: RideCategory) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+             setFares(prev => ({
+                ...prev,
+                [category]: {
+                    ...prev[category],
+                    imageUrl: reader.result as string
+                }
+            }));
+        };
+        reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveFares = () => {
@@ -904,13 +928,22 @@ function AdminDashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Tarifas por Categoria</CardTitle>
-                        <CardDescription>Defina o valor por km para cada categoria de viagem.</CardDescription>
+                        <CardDescription>Defina o valor por km e imagem para cada categoria de viagem.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                         <Accordion type="single" collapsible className="w-full">
+                         <Accordion type="single" collapsible className="w-full" defaultValue="comfort">
                             <AccordionItem value="comfort">
                                 <AccordionTrigger>Comfort</AccordionTrigger>
                                 <AccordionContent className="space-y-4 pt-4">
+                                     <div className="space-y-2">
+                                        <Label>Imagem da Categoria</Label>
+                                        <div className="flex items-center gap-4">
+                                             <Image src={fares.comfort.imageUrl} alt="Comfort" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
+                                             <Input type="file" ref={comfortFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'comfort')} />
+                                             <Button variant="outline" size="sm" onClick={() => comfortFileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/>Alterar</Button>
+                                        </div>
+                                    </div>
+                                    <Separator />
                                     <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="comfort-base-fare">Tarifa Base (R$)</Label>
                                         <Input id="comfort-base-fare" type="number" value={fares.comfort.baseFare} onChange={(e) => handleFareChange(e, 'comfort', 'baseFare')} step="0.01" />
@@ -932,6 +965,15 @@ function AdminDashboard() {
                              <AccordionItem value="executive">
                                 <AccordionTrigger>Executive</AccordionTrigger>
                                 <AccordionContent className="space-y-4 pt-4">
+                                     <div className="space-y-2">
+                                        <Label>Imagem da Categoria</Label>
+                                        <div className="flex items-center gap-4">
+                                             <Image src={fares.executive.imageUrl} alt="Executive" width={100} height={50} className="rounded-md border bg-muted aspect-[2/1] object-contain" />
+                                             <Input type="file" ref={executiveFileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageChange(e, 'executive')} />
+                                             <Button variant="outline" size="sm" onClick={() => executiveFileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4"/>Alterar</Button>
+                                        </div>
+                                    </div>
+                                    <Separator />
                                      <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="executive-base-fare">Tarifa Base (R$)</Label>
                                         <Input id="executive-base-fare" type="number" value={fares.executive.baseFare} onChange={(e) => handleFareChange(e, 'executive', 'baseFare')} step="0.01" />

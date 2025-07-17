@@ -53,6 +53,7 @@ interface FareConfig {
     costPerMinute: number;
     costPerKm: number;
     bookingFee: number;
+    imageUrl: string;
 }
 
 interface AppFareConfig {
@@ -61,8 +62,8 @@ interface AppFareConfig {
 }
 
 const defaultFareConfig: AppFareConfig = {
-    comfort: { baseFare: 3.50, costPerMinute: 0.45, costPerKm: 1.50, bookingFee: 2.00 },
-    executive: { baseFare: 2.50, costPerMinute: 0.30, costPerKm: 1.20, bookingFee: 2.00 }
+    comfort: { baseFare: 3.50, costPerMinute: 0.45, costPerKm: 1.50, bookingFee: 2.00, imageUrl: viagemCarImage },
+    executive: { baseFare: 2.50, costPerMinute: 0.30, costPerKm: 1.20, bookingFee: 2.00, imageUrl: executiveCarImage }
 };
 
 const paymentIcons: { [key in PaymentMethod]: React.ReactNode } = {
@@ -101,7 +102,11 @@ export function ConfirmRideUI() {
         // Convert string values to numbers
         const numericFares = Object.entries(storedFares).reduce((acc, [category, config]) => {
             acc[category as RideCategory] = Object.entries(config).reduce((cfg, [key, value]) => {
-                cfg[key as keyof FareConfig] = parseFloat(value as string);
+                if(key !== 'imageUrl') {
+                    cfg[key as keyof FareConfig] = parseFloat(value as string);
+                } else {
+                    cfg[key as keyof FareConfig] = value as string;
+                }
                 return cfg;
             }, {} as FareConfig);
             return acc;
@@ -264,7 +269,7 @@ export function ConfirmRideUI() {
                         selectedCategory === 'comfort' ? 'border-primary bg-primary/10' : 'border-border'
                     )}
                  >
-                    <Image src={viagemCarImage} alt="Comfort Car" width={100} height={50} className="rounded-md object-contain"/>
+                    <Image src={fareConfig.comfort.imageUrl} alt="Comfort Car" width={100} height={50} className="rounded-md object-contain"/>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
                             <h3 className="font-bold text-lg">Comfort</h3>
@@ -283,7 +288,7 @@ export function ConfirmRideUI() {
                         selectedCategory === 'executive' ? 'border-primary bg-primary/10' : 'border-border'
                     )}
                  >
-                    <Image src={executiveCarImage} alt="Executive Car" width={100} height={50} className="rounded-md object-contain"/>
+                    <Image src={fareConfig.executive.imageUrl} alt="Executive Car" width={100} height={50} className="rounded-md object-contain"/>
                      <div className="flex-1">
                         <div className="flex items-center gap-2">
                             <h3 className="font-bold text-lg">Executivo</h3>
