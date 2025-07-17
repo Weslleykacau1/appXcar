@@ -227,23 +227,28 @@ function AcceptRidePage() {
                 </div>
              </div>
           </div>
-          <div className="p-4 bg-gray-800 text-white flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14 border-2 border-gray-600">
+          <div className="p-4 bg-gray-800 text-white flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1 truncate">
+                <Avatar className="h-14 w-14 border-2 border-gray-600 shrink-0">
                     <AvatarImage src={rideData.passenger.avatarUrl || 'https://placehold.co/100x100.png'} data-ai-hint="person avatar" />
                     <AvatarFallback>{rideData.passenger.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div>
-                    <h3 className="text-lg font-bold">{rideData.passenger.name}</h3>
+                <div className="truncate">
+                    <h3 className="text-lg font-bold truncate">{rideData.passenger.name}</h3>
                     <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-400" fill="currentColor" />
                         <p className="font-semibold">{rideData.passenger.rating.toFixed(1)}</p>
                     </div>
                 </div>
             </div>
-            <Button size="lg" className="h-16 w-32 bg-primary hover:bg-primary/90 text-lg font-bold" onClick={handleAcceptRide}>
-                Aceitar
-            </Button>
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" className="h-16 text-base font-bold text-white hover:bg-white/10" onClick={handleRejectRide}>
+                    Recusar
+                </Button>
+                <Button size="lg" className="h-16 bg-primary hover:bg-primary/90 text-lg font-bold" onClick={handleAcceptRide}>
+                    Aceitar
+                </Button>
+            </div>
           </div>
           <CardContent className="p-4 space-y-3">
               <div className="flex items-start gap-4">
