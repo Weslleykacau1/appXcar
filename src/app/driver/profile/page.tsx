@@ -117,24 +117,26 @@ function DriverProfilePage() {
         setIsHistoryLoading(true);
         try {
             const today = new Date();
-            const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const startOfTodayTimestamp = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
 
             const ridesRef = collection(db, "rides");
-            const q = query(
-                ridesRef, 
-                where("driverId", "==", user.id),
-                where("createdAt", ">=", Timestamp.fromDate(startOfToday))
-            );
-            const querySnapshot = await getDocs(q);
-            const history: Ride[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ride));
+            const q = query(ridesRef, where("driverId", "==", user.id));
             
-            history.sort((a, b) => {
+            const querySnapshot = await getDocs(q);
+            const allRides: Ride[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ride));
+            
+            const todaysRides = allRides.filter(ride => {
+                const rideDate = ride.createdAt?.toDate ? ride.createdAt.toDate().getTime() : 0;
+                return rideDate >= startOfTodayTimestamp;
+            });
+
+            todaysRides.sort((a, b) => {
                 const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
                 const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
                 return dateB - dateA;
             });
             
-            setRideHistory(history);
+            setRideHistory(todaysRides);
         } catch (error) {
              console.error("Error fetching ride history:", error);
              toast({ variant: "destructive", title: "Erro", description: "Não foi possível carregar o histórico."})
@@ -652,5 +654,3 @@ function DriverProfilePage() {
 }
 
 export default withAuth(DriverProfilePage, ["driver"]);
-
-    
