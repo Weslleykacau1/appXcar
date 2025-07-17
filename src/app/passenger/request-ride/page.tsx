@@ -113,8 +113,7 @@ function RequestRidePage() {
     return null;
   }, [mapboxToken]);
 
-   useEffect(() => {
-    const loadUserData = async () => {
+   const loadUserData = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
         const userProfile = await fetchUserProfile(user as User);
@@ -147,10 +146,12 @@ function RequestRidePage() {
         
         setRecentRides(completedRides);
         setIsLoading(false);
-    };
+    }, [user, fetchUserProfile]);
 
+
+  useEffect(() => {
     loadUserData();
-   }, [user, fetchUserProfile]);
+  }, [loadUserData]);
 
 
   const debounce = (func: Function, delay: number) => {
@@ -283,7 +284,7 @@ function RequestRidePage() {
   if (isLoading || !user) {
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
-             <header className="bg-gradient-to-br from-primary to-secondary p-4 pb-8 rounded-b-3xl text-primary-foreground space-y-6">
+             <div className="bg-gradient-to-br from-primary to-secondary p-4 pb-8 rounded-b-3xl text-primary-foreground space-y-6">
                 <Skeleton className="h-9 w-48 bg-white/20 rounded-lg"/>
                  <div className="relative flex items-center">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-200" />
@@ -291,8 +292,8 @@ function RequestRidePage() {
                         <Skeleton className="h-5 w-40 bg-white/20 rounded-lg" />
                      </div>
                  </div>
-             </header>
-             <main className="flex-1 p-4 space-y-6 pb-24 -mt-6">
+             </div>
+             <main className="flex-1 p-4 space-y-6 pb-24 -mt-6 bg-background">
                  <Card className="bg-card shadow-lg">
                     <CardContent className="p-4 flex items-center gap-4">
                         <Skeleton className="h-10 w-10 rounded-full bg-muted" />
@@ -408,20 +409,20 @@ function RequestRidePage() {
                         ))}
                     </div>
                  ) : (
-                    <>
-                         <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
+                    <div className="space-y-1">
+                         <button className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Home className="h-5 w-5 text-muted-foreground"/>
                             </div>
                             <p className="font-semibold">Casa</p>
                         </button>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, 'work')}>
+                        <button className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, 'work')}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Briefcase className="h-5 w-5 text-muted-foreground"/>
                             </div>
                             <p className="font-semibold">Trabalho</p>
                         </button>
-                    </>
+                    </div>
                  )}
 
             </main>
@@ -431,9 +432,9 @@ function RequestRidePage() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <header className="bg-gradient-to-br from-primary to-secondary p-4 pb-8 rounded-b-3xl text-primary-foreground space-y-6">
-            <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
+    <div className="flex flex-col min-h-screen w-full bg-gradient-to-b from-[#9B2FFF] via-[#B028A6] to-[#1D1B2E]">
+        <div className="p-4 pb-8 text-primary-foreground space-y-6">
+            <h1 className="text-3xl font-bold text-white">Oi, {firstName}</h1>
             
             <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-200" />
@@ -441,12 +442,12 @@ function RequestRidePage() {
                     id="destination"
                     className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-black/20 border-none"
                 >
-                    <span className="text-primary-foreground/80">Para onde você vai?</span>
+                    <span className="text-white/80">Para onde você vai?</span>
                 </div>
             </div>
-        </header>
-        <main className="flex-1 p-4 space-y-6 pb-24 -mt-6">
-            <Card className="bg-card shadow-lg">
+        </div>
+        <main className="flex-1 p-4 space-y-6 pb-24 -mt-6 bg-background rounded-t-3xl">
+            <Card className="bg-card shadow-lg -mt-12">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
