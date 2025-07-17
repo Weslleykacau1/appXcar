@@ -140,10 +140,15 @@ function AcceptRidePage() {
 
     const showNotification = () => {
         if ('Notification' in window && Notification.permission === 'granted') {
+            // NOTE: new Notification() is blocked in secure contexts (like this one)
+            // without a Service Worker. Removing for now to prevent app crash.
+            // A full implementation would require a service worker.
+            /*
              new Notification('Nova Solicitação de Corrida', {
                 body: 'Você tem uma nova solicitação de viagem.',
                 icon: '/favicon.ico'
             });
+            */
         }
     }
     
@@ -301,5 +306,3 @@ function AcceptRidePage() {
 }
 
 export default withAuth(AcceptRidePage, ["driver"]);
-
-    
