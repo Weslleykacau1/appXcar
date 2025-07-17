@@ -485,8 +485,8 @@ function RequestRidePage() {
                     <X className="h-6 w-6" />
                 </Button>
                 <h1 className="text-xl font-bold mx-auto">Viagem</h1>
-                 <Button onClick={handleConfirmTrip} disabled={!destinationSuggestion} variant="link" className="font-bold text-base -mr-2 text-foreground">
-                    Confirma
+                 <Button size="sm" onClick={handleConfirmTrip} disabled={!destinationSuggestion}>
+                    Confirmar
                  </Button>
             </header>
             <main className="flex-1 px-4 py-6 space-y-6">
@@ -505,9 +505,17 @@ function RequestRidePage() {
                                <div className="w-3 h-3 rounded-full bg-pink-500 border-2 border-background ring-2 ring-pink-500 mt-5"></div>
                             </div>
                             <div className="flex-1 space-y-2">
-                                <div className="p-2 rounded-md">
-                                    <p className="text-xs text-muted-foreground">Início</p>
-                                    <p className="font-semibold">Localidade atual</p>
+                                <div className="relative">
+                                    <Input
+                                        id="pickup-planner"
+                                        placeholder="Local de Partida"
+                                        className="border-none p-2 h-auto text-base font-semibold focus-visible:ring-0"
+                                        required
+                                        value={pickupInput}
+                                        onChange={(e) => handleInputChange(e, 'pickup')}
+                                        onFocus={() => setActiveInput('pickup')}
+                                        autoComplete="off"
+                                    />
                                 </div>
                                 <Separator />
                                 {stopInputs.map((stop, index) => (
