@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Info, Users, Briefcase, Landmark, CreditCard, Wallet, ChevronDown, Clock, Check } from "lucide-react";
