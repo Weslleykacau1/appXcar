@@ -410,20 +410,7 @@ function RequestRidePage() {
                         ))}
                     </div>
                  ) : (
-                    <div className="space-y-1">
-                         <button className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
-                            <div className="p-3 bg-muted rounded-full">
-                                <Home className="h-5 w-5 text-muted-foreground"/>
-                            </div>
-                            <p className="font-semibold">Casa</p>
-                        </button>
-                        <button className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, 'work')}>
-                            <div className="p-3 bg-muted rounded-full">
-                                <Briefcase className="h-5 w-5 text-muted-foreground"/>
-                            </div>
-                            <p className="font-semibold">Trabalho</p>
-                        </button>
-                    </div>
+                    null
                  )}
 
             </main>
