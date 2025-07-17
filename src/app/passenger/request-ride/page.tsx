@@ -207,38 +207,33 @@ function RequestRidePage() {
     setActiveInput(null);
   };
 
-  const handleSelectShortcut = async (address: string | null, type: 'pickup' | 'destination') => {
-      if (!address) {
-        toast({
-            variant: "destructive",
-            title: "Endereço não definido",
-            description: "Por favor, adicione este endereço em seu perfil primeiro.",
-        });
-        return;
-      }
-      const suggestion = await geocodeAddress(address);
-      if (suggestion) {
-        if(type === 'destination') {
-            setDestinationSuggestion(suggestion);
-            setDestinationInput(suggestion.place_name);
-            handleOpenTripPlanner();
-        } else {
-            setPickupSuggestion(suggestion);
-            setPickupInput(suggestion.place_name);
-        }
-      } else {
-          toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
-      }
+  const handleSelectShortcut = async (address: string | null, type: AddressType) => {
+    if (!address) {
+      toast({
+          variant: "default",
+          title: "Endereço não definido",
+          description: `Por favor, adicione seu endereço de ${type === 'home' ? 'casa' : 'trabalho'} no seu perfil.`,
+      });
+      router.push('/passenger/profile');
+      return;
+    }
+    const suggestion = await geocodeAddress(address);
+    if (suggestion) {
+        setDestinationSuggestion(suggestion);
+        setDestinationInput(suggestion.place_name);
+        handleOpenTripPlanner(suggestion); // Pass suggestion to pre-fill destination
+    } else {
+        toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
+    }
   }
   
-  const handleOpenTripPlanner = () => {
+  const handleOpenTripPlanner = (destination?: Suggestion) => {
     // Reset state for new planning session
     setPickupInput("Localidade atual");
-    // Keep destination if already set
-    // setDestinationInput("");
+    setDestinationInput(destination ? destination.place_name : "");
     setStopInputs([]);
     setPickupSuggestion(null);
-    // setDestinationSuggestion(null);
+    setDestinationSuggestion(destination || null);
     setStopSuggestions([]);
     setSuggestions([]);
     setActiveInput(null);
@@ -375,13 +370,13 @@ function RequestRidePage() {
                     </div>
                  ) : (
                     <>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, activeInput === 'pickup' ? 'pickup' : 'destination')}>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Home className="h-5 w-5 text-muted-foreground"/>
                             </div>
                             <p className="font-semibold">Casa</p>
                         </button>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, activeInput === 'pickup' ? 'pickup' : 'destination')}>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, 'work')}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Briefcase className="h-5 w-5 text-muted-foreground"/>
                             </div>
@@ -401,7 +396,7 @@ function RequestRidePage() {
         <main className="flex-1 p-4 space-y-6 pb-24">
             <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
             
-            <div className="relative flex items-center cursor-pointer" onClick={handleOpenTripPlanner}>
+            <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <div
                     id="destination"
@@ -412,11 +407,11 @@ function RequestRidePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(homeAddress, 'destination')}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(homeAddress, 'home')}>
                     <Home className="mr-3"/>
                     <span className="font-semibold">Casa</span>
                 </Button>
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(workAddress, 'destination')}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(workAddress, 'work')}>
                     <Briefcase className="mr-3"/>
                     <span className="font-semibold">Trabalho</span>
                 </Button>
