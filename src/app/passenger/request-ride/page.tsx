@@ -138,9 +138,10 @@ function RequestRidePage() {
         const ridesRef = collection(db, "rides");
         const q = query(
             ridesRef, 
-            where("passengerId", "==", user.id),
+            where("passengerId", "==", user.id)
         );
         const querySnapshot = await getDocs(q);
+        
         const allRides = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -158,6 +159,7 @@ function RequestRidePage() {
         
         setRecentRides(completedRides);
     };
+
     loadUserData();
    }, [user, fetchUserProfile]);
 
@@ -180,7 +182,7 @@ function RequestRidePage() {
     setDestinationSuggestions(data.features);
   };
   
-  const debouncedFetchDestinationSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), []);
+  const debouncedFetchDestinationSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), [mapboxToken]);
   
   const handleDestinationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -188,7 +190,7 @@ function RequestRidePage() {
     debouncedFetchDestinationSuggestions(value);
   };
 
-  const handleSelectSuggestion = (suggestion: Suggestion | string | null) => {
+  const handleSelectSuggestion = async (suggestion: Suggestion | string | null) => {
       if (!suggestion) {
         toast({
             variant: "destructive",
@@ -198,21 +200,18 @@ function RequestRidePage() {
         return;
       }
 
-      const isString = typeof suggestion === 'string';
-      const address = isString ? suggestion : suggestion.place_name;
+      let geoSuggestion: Suggestion | null;
+      if (typeof suggestion === 'string') {
+          geoSuggestion = await geocodeAddress(suggestion);
+      } else {
+          geoSuggestion = suggestion;
+      }
       
-      if (isString) {
-          geocodeAddress(address).then(geoSuggestion => { 
-              if (geoSuggestion) {
-                  setItem(PRESELECTED_DESTINATION_KEY, geoSuggestion);
-                  router.push('/passenger/confirm-ride');
-              } else {
-                  toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
-              }
-          })
-      } else { 
-         setItem(PRESELECTED_DESTINATION_KEY, suggestion);
-         router.push('/passenger/confirm-ride');
+      if (geoSuggestion) {
+          setItem(PRESELECTED_DESTINATION_KEY, geoSuggestion);
+          router.push('/passenger/confirm-ride');
+      } else {
+          toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
       }
   };
   
