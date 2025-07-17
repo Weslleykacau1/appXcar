@@ -4,8 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Loader2, Info, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Users, Briefcase, Landmark, CreditCard, Wallet, ChevronDown, Clock } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import type { MapRef, LngLatLike } from "react-map-gl";
 import { useToast } from "@/hooks/use-toast";
@@ -18,15 +17,16 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
 type RideCategory = "comfort" | "executive";
+type PaymentMethod = "Cartão" | "PIX" | "Dinheiro";
+
 
 const PRESELECTED_DESTINATION_KEY = 'preselected_destination';
 const ADMIN_FARES_CONFIG_KEY = 'admin_fares_config';
@@ -57,6 +57,13 @@ const defaultFareConfig: AppFareConfig = {
     executive: { baseFare: 2.50, costPerMinute: 0.30, costPerKm: 1.20, bookingFee: 2.00 }
 };
 
+const paymentIcons: { [key in PaymentMethod]: React.ReactNode } = {
+  'Cartão': <CreditCard className="h-4 w-4" />,
+  'PIX': <Landmark className="h-4 w-4" />,
+  'Dinheiro': <Wallet className="h-4 w-4" />,
+};
+
+
 export function ConfirmRideUI() {
   const { user } = useAuth();
   const router = useRouter();
@@ -67,12 +74,15 @@ export function ConfirmRideUI() {
   const [pickupCoords, setPickupCoords] = useState<LngLatLike | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<LngLatLike | null>(null);
   const [destinationAddress, setDestinationAddress] = useState<string>('');
+  const [pickupAddress, setPickupAddress] = useState<string>('Localidade atual');
+
 
   const [route, setRoute] = useState<any>(null);
   const [distance, setDistance] = useState(0); // in km
   const [duration, setDuration] = useState(0); // in minutes
   
   const [selectedCategory, setSelectedCategory] = useState<RideCategory>("comfort");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("PIX");
   const [fareConfig, setFareConfig] = useState<AppFareConfig>(defaultFareConfig);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isLoadingRoute, setIsLoadingRoute] = useState(true);
@@ -100,7 +110,7 @@ export function ConfirmRideUI() {
       return;
     }
     setDestinationCoords(destination.center);
-    setDestinationAddress(destination.place_name);
+    setDestinationAddress(destination.text);
 
     // Get user's current location for pickup
     navigator.geolocation.getCurrentPosition(
@@ -166,7 +176,7 @@ export function ConfirmRideUI() {
             category: selectedCategory,
             status: 'pending',
             createdAt: serverTimestamp(),
-            paymentMethod: 'Cartão', // Default for now
+            paymentMethod: paymentMethod,
             route: {
               coordinates: route,
               distance: distance,
@@ -192,9 +202,20 @@ export function ConfirmRideUI() {
   return (
     <div className="h-screen w-screen relative flex flex-col bg-background">
       <header className="absolute top-0 left-0 right-0 z-10 p-4">
-        <Button variant="ghost" size="icon" className="bg-background rounded-full shadow-md" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+         <div className="bg-background/80 backdrop-blur-sm rounded-lg shadow-md flex items-center p-2 gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+             <div className="flex-1 text-center font-semibold truncate">{pickupAddress}</div>
+             <p>→</p>
+             <div className="flex-1 text-center font-semibold truncate">{destinationAddress}</div>
+             {duration > 0 ? (
+                <div className="bg-primary/20 text-primary-foreground font-semibold text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <Clock className="h-3 w-3"/>
+                    {Math.ceil(duration)} min
+                </div>
+             ) : <Skeleton className="h-6 w-16 rounded-full" />}
+         </div>
       </header>
       
       <div className="flex-1">
@@ -202,69 +223,84 @@ export function ConfirmRideUI() {
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl shadow-2xl p-4 space-y-4">
-         <div className="w-full overflow-x-auto pb-2">
-            <div className="flex gap-3">
-              {isLoadingRoute ? (
+          <div className="space-y-3">
+             {isLoadingRoute ? (
                  <>
-                  <Skeleton className="h-24 w-48 rounded-lg" />
-                  <Skeleton className="h-24 w-48 rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
                  </>
               ) : (
                 <>
-                <div 
-                    className={cn(
-                        "p-3 rounded-lg border-2 min-w-48 text-left transition-all",
-                        selectedCategory === 'comfort' ? 'border-primary bg-primary/10' : 'border-border bg-muted/50'
-                    )}
+                 <div
                     onClick={() => setSelectedCategory('comfort')}
-                >
-                    <Image src={viagemCarImage} alt="Comfort Car" width={75} height={36} className="mb-2"/>
-                    <p className="font-bold">Comfort</p>
-                    <p className="font-bold text-primary">{calculateFare('comfort').toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
-                    <p className="text-xs text-muted-foreground">~{Math.ceil(duration)} min</p>
-                </div>
-                 <div 
                     className={cn(
-                        "p-3 rounded-lg border-2 min-w-48 text-left transition-all",
-                         selectedCategory === 'executive' ? 'border-primary bg-primary/10' : 'border-border bg-muted/50'
+                        "p-4 rounded-lg border-2 flex items-center gap-4 transition-all cursor-pointer",
+                        selectedCategory === 'comfort' ? 'border-primary bg-primary/10' : 'border-border'
                     )}
+                 >
+                    <Image src={viagemCarImage} alt="Comfort Car" width={100} height={50} className="rounded-md object-contain"/>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">Comfort</h3>
+                            <Users className="h-4 w-4 text-muted-foreground"/>
+                            <span className="text-sm text-muted-foreground">4</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">em {Math.ceil(duration * 0.8)} min</p>
+                    </div>
+                    <p className="text-lg font-bold">{calculateFare('comfort').toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
+                 </div>
+
+                 <div
                     onClick={() => setSelectedCategory('executive')}
-                >
-                    <Image src={executiveCarImage} alt="Executive Car" width={75} height={36} className="mb-2"/>
-                    <p className="font-bold">Executivo</p>
-                    <p className="font-bold text-primary">{calculateFare('executive').toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
-                    <p className="text-xs text-muted-foreground">~{Math.ceil(duration)} min</p>
-                </div>
+                    className={cn(
+                        "p-4 rounded-lg border-2 flex items-center gap-4 transition-all cursor-pointer",
+                        selectedCategory === 'executive' ? 'border-primary bg-primary/10' : 'border-border'
+                    )}
+                 >
+                    <Image src={executiveCarImage} alt="Executive Car" width={100} height={50} className="rounded-md object-contain"/>
+                     <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg">Executivo</h3>
+                            <Users className="h-4 w-4 text-muted-foreground"/>
+                            <span className="text-sm text-muted-foreground">4</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">em {Math.ceil(duration * 0.6)} min</p>
+                    </div>
+                    <p className="text-lg font-bold">{calculateFare('executive').toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</p>
+                 </div>
                 </>
               )}
-            </div>
+          </div>
+         
+         <div className="flex items-center gap-4">
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="p-0 h-auto gap-2">
+                        {paymentIcons[paymentMethod]}
+                        <span className="font-semibold">{paymentMethod}</span>
+                        <ChevronDown className="h-4 w-4 opacity-50"/>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                    {(Object.keys(paymentIcons) as PaymentMethod[]).map((method) => (
+                        <DropdownMenuItem key={method} onClick={() => setPaymentMethod(method)}>
+                             {paymentIcons[method]}
+                             <span>{method}</span>
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+             </DropdownMenu>
+
+            <Button 
+                className="w-full h-12 text-lg font-bold bg-secondary hover:bg-secondary/90" 
+                disabled={isRequesting || isLoadingRoute}
+                onClick={handleRequestRide}
+            >
+               {isRequesting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 
+                `Selecionar ${selectedCategory === 'comfort' ? 'Comfort' : 'Executivo'}`
+               }
+            </Button>
          </div>
-         
-         <Sheet>
-            <SheetTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-0 h-auto">
-                    <Plus className="h-4 w-4 mr-2"/>
-                    Adicionar observação para o motorista
-                </Button>
-            </SheetTrigger>
-            <SheetContent>
-                <SheetHeader>
-                <SheetTitle>Observações para o motorista</SheetTitle>
-                </SheetHeader>
-                <div className="py-4">
-                    <Input placeholder="Ex: Estou com malas grandes" />
-                </div>
-            </SheetContent>
-        </Sheet>
-         
-         <Button 
-            className="w-full h-12 text-lg font-bold bg-secondary hover:bg-secondary/90" 
-            disabled={isRequesting || isLoadingRoute}
-            onClick={handleRequestRide}
-        >
-           {isRequesting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-           Confirmar e solicitar
-         </Button>
       </div>
     </div>
   );

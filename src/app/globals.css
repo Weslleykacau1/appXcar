@@ -40,10 +40,10 @@ body {
   }
 
   .dark {
-    --background: 0 0% 7%; /* Preto Fosco */
+    --background: 251 8% 10%; /* Preto Fosco / Roxo Escuro */
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 7%;
+    --card: 251 8% 10%; /* Preto Fosco / Roxo Escuro */
     --card-foreground: 0 0% 100%;
 
     --popover: 0 0% 7%;
