@@ -15,13 +15,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  params
+  params: { locale }
 }: Readonly<{
   children: React.ReactNode;
   params: { locale: string };
 }>) {
   return (
-    <html lang={params.locale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
