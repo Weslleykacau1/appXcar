@@ -30,7 +30,7 @@ import { BottomNavBar } from "@/components/bottom-nav-bar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type ModalType = 'upload-photo' | null;
-type AddressType = 'home' | 'work' | 'custom' | { type: 'edit_custom', id: string };
+type AddressType = 'custom' | { type: 'edit_custom', id: string };
 
 interface SavedLocation {
     id: string;
@@ -258,7 +258,9 @@ function ProfilePageContent() {
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
-                cpf: profileData.cpf
+                cpf: profileData.cpf,
+                homeAddress: profileData.homeAddress,
+                workAddress: profileData.workAddress,
             });
             toast({ title: t('toast.info_saved_title') });
              setIsEditingProfile(false);
@@ -283,13 +285,7 @@ function ProfilePageContent() {
     
      const handleOpenAddressSheet = (type: AddressType, data?: SavedLocation) => {
         setAddressTypeToSet(type);
-        if (type === 'home') {
-            setCurrentAddress(profileData.homeAddress);
-            setLocationName('Casa');
-        } else if (type === 'work') {
-            setCurrentAddress(profileData.workAddress);
-            setLocationName('Trabalho');
-        } else if (type === 'custom') {
+        if (type === 'custom') {
             setCurrentAddress('');
             setLocationName('');
         } else if (typeof type === 'object' && type.type === 'edit_custom' && data) {
@@ -312,13 +308,7 @@ function ProfilePageContent() {
             const userDocRef = doc(db, "profiles", user.id);
             let updatedProfileData = { ...profileData };
 
-            if (addressTypeToSet === 'home') {
-                await updateDoc(userDocRef, { homeAddress: currentAddress });
-                updatedProfileData.homeAddress = currentAddress;
-            } else if (addressTypeToSet === 'work') {
-                await updateDoc(userDocRef, { workAddress: currentAddress });
-                 updatedProfileData.workAddress = currentAddress;
-            } else if (addressTypeToSet === 'custom') {
+            if (addressTypeToSet === 'custom') {
                 const newLocation: SavedLocation = { id: Date.now().toString(), name: locationName, address: currentAddress };
                 const newSavedLocations = [...(profileData.savedLocations || []), newLocation];
                 await updateDoc(userDocRef, { savedLocations: newSavedLocations });
@@ -459,8 +449,6 @@ function ProfilePageContent() {
     
      const getSheetTitle = () => {
         if (!addressTypeToSet) return "";
-        if (addressTypeToSet === 'home') return t('profile.address.edit_home_title');
-        if (addressTypeToSet === 'work') return t('profile.address.edit_work_title');
         if (addressTypeToSet === 'custom') return t('profile.address.add_new_title');
         if (addressTypeToSet && typeof addressTypeToSet === 'object' && addressTypeToSet.type === 'edit_custom') return t('profile.address.edit_saved_title');
         return "";
@@ -534,6 +522,15 @@ function ProfilePageContent() {
                             <Label htmlFor="cpf">{t('profile.form.cpf')}</Label>
                             <Input id="cpf" value={profileData.cpf} onChange={(e) => setProfileData({...profileData, cpf: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
                         </div>
+                        <Separator />
+                        <div>
+                            <Label htmlFor="home-address">{t('profile.address.home')}</Label>
+                            <Input id="home-address" value={profileData.homeAddress} onChange={(e) => setProfileData({...profileData, homeAddress: e.target.value})} disabled={!isEditingProfile} placeholder={t('profile.address.add_home')} className={cn(!isEditingProfile && "bg-muted border-none")} />
+                        </div>
+                         <div>
+                            <Label htmlFor="work-address">{t('profile.address.work')}</Label>
+                            <Input id="work-address" value={profileData.workAddress} onChange={(e) => setProfileData({...profileData, workAddress: e.target.value})} disabled={!isEditingProfile} placeholder={t('profile.address.add_work')} className={cn(!isEditingProfile && "bg-muted border-none")} />
+                        </div>
                      </CardContent>
                 </Card>
 
@@ -578,61 +575,7 @@ function ProfilePageContent() {
                         <CardTitle className="text-lg">{t('profile.address.saved_locations')}</CardTitle>
                     </CardHeader>
                     <CardContent className="divide-y p-0">
-                        <div className="flex items-center justify-between py-3 px-4">
-                           <div className="flex items-center gap-4">
-                             <Home className="h-5 w-5 text-muted-foreground"/>
-                               <div className="text-left">
-                                   <p className="font-semibold">{t('profile.address.home')}</p>
-                                   <p className="text-xs text-muted-foreground">{profileData.homeAddress || t('profile.address.add_home')}</p>
-                               </div>
-                           </div>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <ChevronDown className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleRequestRideToSavedAddress(profileData.homeAddress)}>
-                                        <Car className="mr-2 h-4 w-4" />
-                                        Solicitar Corrida
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenAddressSheet('home')}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        {profileData.homeAddress ? 'Editar' : 'Adicionar'}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                         <div className="flex items-center justify-between py-3 px-4">
-                           <div className="flex items-center gap-4">
-                             <Briefcase className="h-5 w-5 text-muted-foreground"/>
-                               <div className="text-left">
-                                   <p className="font-semibold">{t('profile.address.work')}</p>
-                                   <p className="text-xs text-muted-foreground">{profileData.workAddress || t('profile.address.add_work')}</p>
-                               </div>
-                           </div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <ChevronDown className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleRequestRideToSavedAddress(profileData.workAddress)}>
-                                        <Car className="mr-2 h-4 w-4" />
-                                        Solicitar Corrida
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleOpenAddressSheet('work')}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        {profileData.workAddress ? 'Editar' : 'Adicionar'}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-
                         {profileData.savedLocations.map(renderCustomLocationItem)}
-                        
                         <Button variant="ghost" className="w-full h-auto justify-start items-center py-4 px-4 gap-4" onClick={() => handleOpenAddressSheet('custom')}>
                             <Plus className="h-5 w-5 text-primary"/>
                             <span className="font-semibold text-primary">{t('profile.address.add_new')}</span>
@@ -783,7 +726,3 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-    
-
-    
