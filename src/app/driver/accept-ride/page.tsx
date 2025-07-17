@@ -98,17 +98,19 @@ function AcceptRidePage() {
     const rideDocRef = doc(db, "rides", rideData.id);
     const driverProfileSnap = await getDoc(doc(db, "profiles", driver.id));
     const driverProfile = driverProfileSnap.data();
-
-    await updateDoc(rideDocRef, {
+    
+    const driverData = {
       driverId: driver.id,
       driverName: driver.name,
       status: 'accepted',
       driverVehicleModel: driverProfile?.vehicle_model || 'N/A',
       driverVehiclePlate: driverProfile?.vehicle_license_plate || 'N/A',
-    });
+    }
+
+    await updateDoc(rideDocRef, driverData);
 
     // Set ride data for the next page
-    setItem(CURRENT_RIDE_KEY, rideData);
+    setItem(CURRENT_RIDE_KEY, {...rideData, ...driverData});
     removeItem(RIDE_REQUEST_KEY); // Clear the request
     router.push('/driver/on-ride');
   }

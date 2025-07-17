@@ -9,13 +9,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MapGL, { Marker, Source, Layer, LngLatLike, MapRef } from 'react-map-gl';
 import type {LineLayer} from 'react-map-gl';
 import { useTheme } from 'next-themes';
-import { MapPin, Phone, Flag, Star } from "lucide-react";
+import { MapPin, Phone, Flag, Star, MessageSquare, Shield } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { setItem, getItem, removeItem } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
+import { Progress } from "@/components/ui/progress";
 
 
 interface RideData {
@@ -34,6 +35,8 @@ interface RideData {
     destination: { lat: number; lng: number };
     coordinates: LngLatLike[];
   };
+  driverVehicleModel: string;
+  driverVehiclePlate: string;
 }
 
 const mockDriverLocation = { lat: -3.7327, lng: -38.5267 };
@@ -48,6 +51,7 @@ function OnRidePage() {
   const mapRef = useRef<MapRef>(null);
   const [rideData, setRideData] = useState<RideData | null>(null);
   const [ridePhase, setRidePhase] = useState<RidePhase>('to_pickup');
+  const [eta, setEta] = useState(5); // Mock ETA in minutes
   const { toast } = useToast();
 
   useEffect(() => {
@@ -75,8 +79,16 @@ function OnRidePage() {
               router.replace('/driver');
           }
       });
+      
+        // Mock ETA countdown
+        const timer = setInterval(() => {
+            setEta(prev => (prev > 1 ? prev - 1 : 1));
+        }, 60 * 1000);
 
-      return () => unsubscribe();
+      return () => {
+          unsubscribe();
+          clearInterval(timer);
+      }
   }, [rideData, router, toast]);
 
   const routeLayer: LineLayer | null = rideData ? {
@@ -107,18 +119,6 @@ function OnRidePage() {
   const mapStyle = resolvedTheme === 'dark' 
     ? 'mapbox://styles/mapbox/dark-v11' 
     : 'mapbox://styles/mapbox/streets-v12';
-
-  const handleOpenWaze = () => {
-    if (!rideData) return;
-    const { lat, lng } = ridePhase === 'to_pickup' ? rideData.route.pickup : rideData.route.destination;
-    window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`, '_blank');
-  };
-
-  const handleOpenGoogleMaps = () => {
-    if (!rideData) return;
-    const { lat, lng } = ridePhase === 'to_pickup' ? rideData.route.pickup : rideData.route.destination;
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-  };
   
     const handleOpenWhatsApp = () => {
      if (rideData?.passenger.phone) {
@@ -188,6 +188,19 @@ function OnRidePage() {
       </div>
     );
   }
+  
+  const getStatusInfo = () => {
+    switch(ridePhase) {
+        case 'to_pickup':
+            return { title: 'Motorista a caminho', description: `Chega em ${eta} min.`, progress: 33 };
+        case 'to_destination':
+            return { title: 'Viagem em andamento', description: 'Siga para o destino final.', progress: 66 };
+        default:
+             return { title: 'Aguardando...', description: '...', progress: 10 };
+    }
+  }
+
+  const { title, description, progress } = getStatusInfo();
 
   return (
     <div className="h-screen w-screen relative">
@@ -223,69 +236,69 @@ function OnRidePage() {
             </Source>
         )}
       </MapGL>
+      
+      <div className="absolute top-4 right-4 z-10">
+            <Button variant="ghost" size="icon" className="bg-background/80 backdrop-blur-sm rounded-full h-12 w-12">
+                <Shield className="h-6 w-6"/>
+            </Button>
+       </div>
 
-      <div className="absolute top-0 left-0 right-0 p-4 space-y-2">
-        <Card className="shadow-lg rounded-2xl">
-          <CardContent className="p-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={rideData.passenger.avatarUrl || undefined} data-ai-hint="person avatar" />
-                <AvatarFallback>{rideData.passenger.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-bold">{rideData.passenger.name}</p>
-                <div className="flex items-center gap-1 text-sm">
-                    <Star className="h-4 w-4 text-yellow-400" fill="currentColor"/>
-                    <span>{rideData.passenger.rating.toFixed(1)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-               <Button variant="outline" size="icon" className="h-12 w-12 rounded-full" onClick={handleOpenWhatsApp}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6 text-green-500"
-                    >
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                </svg>
-                </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-4">
         <Card className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl overflow-hidden">
           <CardContent className="p-4 space-y-4">
-            <div>
-              {ridePhase === 'to_pickup' ? (
-                 <>
-                    <p className="text-sm text-muted-foreground">Buscar passageiro em:</p>
-                    <p className="font-bold text-lg">{rideData.pickupAddress}</p>
-                 </>
-              ) : (
-                <>
-                    <p className="text-sm text-muted-foreground">Destino Final:</p>
-                    <p className="font-bold text-lg">{rideData.destination}</p>
-                </>
-              )}
+            <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                        <AvatarImage src={rideData.passenger.avatarUrl || undefined} data-ai-hint="person avatar" />
+                        <AvatarFallback>{rideData.passenger.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h3 className="text-xl font-bold">{rideData.passenger.name}</h3>
+                        <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-yellow-400 fill-current"/>
+                            <p className="font-semibold">{rideData.passenger.rating.toFixed(1)}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="font-bold text-lg">{rideData.driverVehiclePlate}</p>
+                    <p className="text-sm text-muted-foreground">{rideData.driverVehicleModel}</p>
+                </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-               <Button onClick={handleOpenWaze} className="h-14 text-base bg-sky-500 hover:bg-sky-600 text-white">
-                    Waze
-                </Button>
-                <Button onClick={handleOpenGoogleMaps} className="h-14 text-base bg-white hover:bg-gray-200 text-gray-800">
-                    Maps
-                </Button>
+            
+             <div>
+                 <div className="flex justify-between items-end mb-2">
+                    <div>
+                       <h4 className="text-lg font-bold">{title}</h4>
+                       <p className="text-muted-foreground">{description}</p>
+                    </div>
+                    <div className="flex gap-2">
+                         <Button size="icon" variant="outline" className="rounded-full h-12 w-12" onClick={handleOpenWhatsApp}>
+                            <MessageSquare className="h-6 w-6"/>
+                        </Button>
+                        <a href={`tel:${rideData.passenger.phone}`}>
+                            <Button size="icon" variant="outline" className="rounded-full h-12 w-12">
+                                <Phone className="h-6 w-6"/>
+                            </Button>
+                        </a>
+                    </div>
+                 </div>
+                 <Progress value={progress} />
             </div>
+
+            <Card className="bg-muted">
+                <CardContent className="p-3">
+                     <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-red-500 mt-1"/>
+                         <div>
+                            <p className="text-xs text-muted-foreground">Destino</p>
+                            <p className="font-semibold">{rideData.destination}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {ridePhase === 'to_pickup' ? (
                 <Button onClick={handleStartRide} className="w-full h-12 text-base">
                     Cheguei / Iniciar Corrida
