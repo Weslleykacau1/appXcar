@@ -6,7 +6,7 @@ import { withAuth } from "@/components/with-auth";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Wallet, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History } from "lucide-react";
+import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Map } from "@/components/map";
 import { cn } from "@/lib/utils";
@@ -102,7 +102,9 @@ function RequestRidePage() {
   const [destinationInput, setDestinationInput] = useState("");
   const [destinationSuggestions, setDestinationSuggestions] = useState<Suggestion[]>([]);
   const [isDestinationSuggestionsOpen, setIsDestinationSuggestionsOpen] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState<Suggestion | null>(null);
+  
+  const [isPlanningTrip, setIsPlanningTrip] = useState(false);
+
 
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
 
@@ -179,7 +181,6 @@ function RequestRidePage() {
   const handleDestinationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setDestinationInput(value);
-    setSelectedDestination(null);
     debouncedFetchDestinationSuggestions(value);
   };
 
@@ -188,6 +189,13 @@ function RequestRidePage() {
       setItem(PRESELECTED_DESTINATION_KEY, address);
       router.push('/passenger/confirm-ride');
   };
+  
+  const handleOpenTripPlanner = () => {
+    setIsPlanningTrip(true);
+    setDestinationInput("");
+    setDestinationSuggestions([]);
+    setIsDestinationSuggestionsOpen(false);
+  }
 
 
   if (!user) return null;
@@ -195,34 +203,97 @@ function RequestRidePage() {
   const firstName = user.name.split(' ')[0];
 
 
+  if (isPlanningTrip) {
+    return (
+        <div className="flex flex-col h-screen bg-background text-foreground">
+            <header className="flex items-center p-4">
+                 <Button variant="ghost" size="icon" onClick={() => setIsPlanningTrip(false)}>
+                    <X className="h-6 w-6" />
+                </Button>
+                <h1 className="text-xl font-bold mx-auto">Viagem</h1>
+                <div className="w-8"></div>
+            </header>
+            <main className="flex-1 px-4 space-y-4">
+                <Card className="bg-card">
+                    <CardContent className="p-4 space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center mt-1">
+                               <div className="w-3 h-3 rounded-full border-2 border-primary"></div>
+                               <div className="w-px h-10 bg-border my-1"></div>
+                               <div className="w-3 h-3 rounded-full border-2 border-destructive"></div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Início</Label>
+                                    <p className="font-semibold">Localidade atual</p>
+                                </div>
+                                <Separator/>
+                                <Popover open={isDestinationSuggestionsOpen} onOpenChange={setIsDestinationSuggestionsOpen}>
+                                    <PopoverAnchor asChild>
+                                        <div className="relative space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Destino</Label>
+                                            <Input
+                                                id="destination-planner"
+                                                placeholder="Para onde?"
+                                                className="border-none p-0 h-auto font-semibold focus-visible:ring-0"
+                                                required
+                                                value={destinationInput}
+                                                onChange={handleDestinationChange}
+                                                autoComplete="off"
+                                                autoFocus
+                                            />
+                                        </div>
+                                    </PopoverAnchor>
+                                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1 mt-2">
+                                        {destinationSuggestions.map((suggestion) => (
+                                            <Button key={suggestion.id} variant="ghost" className="w-full justify-start text-left h-auto py-2 px-3 whitespace-normal" onClick={() => handleSelectSuggestion(suggestion)}>
+                                            {suggestion.place_name}
+                                            </Button>
+                                        ))}
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+                        <Separator/>
+                        <Button variant="ghost" className="p-0 h-auto gap-2 text-primary">
+                            <Plus className="h-5 w-5"/> Adicionar Parada
+                        </Button>
+                    </CardContent>
+                </Card>
+                
+                 <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
+                    <div className="p-3 bg-muted rounded-full">
+                        <Home className="h-5 w-5 text-muted-foreground"/>
+                    </div>
+                    <p className="font-semibold">Casa</p>
+                </button>
+                 <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => workAddress && handleSelectSuggestion(workAddress)}>
+                    <div className="p-3 bg-muted rounded-full">
+                        <Briefcase className="h-5 w-5 text-muted-foreground"/>
+                    </div>
+                    <p className="font-semibold">Trabalho</p>
+                </button>
+
+            </main>
+        </div>
+    )
+  }
+
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
         <main className="flex-1 p-4 space-y-6 pb-24">
-            <h1 className="text-3xl font-bold">Oi, {firstName}</h1>
-
-            <Popover open={isDestinationSuggestionsOpen} onOpenChange={setIsDestinationSuggestionsOpen}>
-                <PopoverAnchor asChild>
-                    <div className="relative flex items-center">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                            id="destination"
-                            placeholder="Para onde você vai?"
-                            className="pl-12 h-14 text-base rounded-full bg-muted border-none focus-visible:ring-2 focus-visible:ring-primary"
-                            required
-                            value={destinationInput}
-                            onChange={handleDestinationChange}
-                            autoComplete="off"
-                        />
-                    </div>
-                </PopoverAnchor>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-1">
-                    {destinationSuggestions.map((suggestion) => (
-                        <Button key={suggestion.id} variant="ghost" className="w-full justify-start text-left h-auto py-2 px-3 whitespace-normal" onClick={() => handleSelectSuggestion(suggestion)}>
-                        {suggestion.place_name}
-                        </Button>
-                    ))}
-                </PopoverContent>
-            </Popover>
+            <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
+            
+            <div className="relative flex items-center cursor-pointer" onClick={handleOpenTripPlanner}>
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <div
+                    id="destination"
+                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-muted border-none"
+                >
+                    <span className="text-muted-foreground">Para onde você vai?</span>
+                </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
                  <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
