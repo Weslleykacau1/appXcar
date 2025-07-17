@@ -375,12 +375,12 @@ function ProfilePageContent() {
         if (!address) {
             toast({
                 variant: "destructive",
-                title: "Endereço não encontrado",
-                description: "Adicione este endereço no seu perfil primeiro.",
+                title: "Endereço não definido",
+                description: "Adicione este endereço em seu perfil primeiro.",
             });
             return;
         }
-        setItem(PRESELECTED_DESTINATION_KEY, address);
+        setItem(PRESELECTED_DESTINATION_KEY, { place_name: address, center: [0,0] }); // Note: Geocoding will happen on next screen
         router.push('/passenger/request-ride');
     };
 
@@ -783,5 +783,7 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+    
 
     
