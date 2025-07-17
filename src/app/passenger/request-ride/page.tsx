@@ -219,9 +219,12 @@ function RequestRidePage() {
     }
     const suggestion = await geocodeAddress(address);
     if (suggestion) {
-        setDestinationSuggestion(suggestion);
-        setDestinationInput(suggestion.place_name);
-        handleOpenTripPlanner(suggestion); // Pass suggestion to pre-fill destination
+        setItem(PRESELECTED_TRIP_KEY, {
+            pickup: null, // Use current location
+            stops: [],
+            destination: suggestion
+        });
+        router.push('/passenger/confirm-ride');
     } else {
         toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
     }
@@ -423,7 +426,12 @@ function RequestRidePage() {
                  <h2 className="text-lg font-semibold mb-3">Viagens recentes</h2>
                  <div className="space-y-2">
                     {recentRides.map(ride => (
-                        <button key={ride.id} className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(ride.destinationAddress, 'destination')}>
+                        <button key={ride.id} className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={async () => {
+                            const suggestion = await geocodeAddress(ride.destinationAddress);
+                            if (suggestion) {
+                                handleOpenTripPlanner(suggestion);
+                            }
+                        }}>
                            <div className="p-3 bg-muted rounded-full">
                              <History className="h-5 w-5 text-muted-foreground"/>
                            </div>
@@ -456,6 +464,3 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
-
-
-    
