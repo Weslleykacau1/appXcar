@@ -194,7 +194,7 @@ export function ConfirmRideUI() {
             passengerPhotoUrl: user.photoUrl || '',
             pickupAddress: tripData.pickup?.place_name || "Localização Atual",
             destinationAddress: tripData.destination.place_name,
-            stops: tripData.stops.map(s => s.place_name),
+            stops: tripData.stops || [],
             pickupCoords: { lat: pickupCoords[1], lng: pickupCoords[0] },
             destinationCoords: { lat: tripData.destination.center[1], lng: tripData.destination.center[0] },
             stopsCoords: tripData.stops.map(s => ({ lat: s.center[1], lng: s.center[0] })),

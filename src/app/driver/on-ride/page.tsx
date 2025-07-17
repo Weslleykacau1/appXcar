@@ -248,7 +248,7 @@ function OnRidePage() {
             <MapPin className="text-blue-500 h-10 w-10" fill="currentColor"/>
         </Marker>
         
-         {rideData.stops.map((stop, index) => (
+         {rideData.stops && rideData.stops.map((stop, index) => (
           <Marker key={`stop-${index}`} longitude={stop.lng} latitude={stop.lat}>
             <div className="bg-background rounded-full p-1 shadow-md">
                 <Circle className="text-orange-500 h-5 w-5" fill="currentColor"/>
@@ -322,10 +322,10 @@ function OnRidePage() {
                     <div className="flex items-start gap-4">
                         <div className="flex flex-col items-center mt-1">
                            <MapPin className="h-5 w-5 text-blue-500" />
-                           {(rideData.stops.length > 0) && (
+                           {(rideData.stops && rideData.stops.length > 0) && (
                                 <Separator orientation="vertical" className="h-6 my-1 bg-border" />
                            )}
-                           {rideData.stops.map((_, index) => (
+                           {rideData.stops && rideData.stops.map((_, index) => (
                                <div key={`stop-icon-${index}`} className="flex flex-col items-center">
                                  <Circle className="h-4 w-4 text-orange-500" />
                                  <Separator orientation="vertical" className="h-6 my-1 bg-border" />
@@ -338,7 +338,7 @@ function OnRidePage() {
                                 <p className="text-xs text-muted-foreground">Partida</p>
                                 <p className="font-semibold leading-tight">{rideData.pickupAddress}</p>
                             </div>
-                             {rideData.stops.map((stop, index) => (
+                             {rideData.stops && rideData.stops.map((stop, index) => (
                                  <div key={`stop-addr-${index}`}>
                                     <Separator className="my-2"/>
                                     <p className="text-xs text-muted-foreground">Parada {index + 1}</p>
