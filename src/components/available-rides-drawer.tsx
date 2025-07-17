@@ -32,7 +32,11 @@ interface RideRequest {
     paymentMethod: string;
     pickupCoords: { lat: number; lng: number };
     destinationCoords: { lat: number; lng: number };
-    route?: any; // Assuming route data might be stored here
+    route?: {
+        coordinates: string; // Stored as JSON string
+        distance: number;
+        duration: number;
+    };
 }
 
 interface AvailableRidesDrawerProps {
@@ -109,7 +113,7 @@ export function AvailableRidesDrawer({ open, onOpenChange }: AvailableRidesDrawe
                 route: {
                     pickup: { lat: ride.pickupCoords.lat, lng: ride.pickupCoords.lng },
                     destination: { lat: ride.destinationCoords.lat, lng: ride.destinationCoords.lng },
-                    coordinates: ride.route?.coordinates || []
+                    coordinates: ride.route?.coordinates || "[]" 
                 }
             };
             

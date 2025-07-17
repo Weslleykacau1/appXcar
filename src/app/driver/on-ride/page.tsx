@@ -32,7 +32,7 @@ interface RideData {
   route: {
     pickup: { lat: number; lng: number };
     destination: { lat: number; lng: number };
-    coordinates: LngLatLike[];
+    coordinates: LngLatLike[] | string;
   };
 }
 
@@ -48,13 +48,24 @@ function OnRidePage() {
   const mapRef = useRef<MapRef>(null);
   const [rideData, setRideData] = useState<RideData | null>(null);
   const [ridePhase, setRidePhase] = useState<RidePhase>('to_pickup');
+  const [parsedCoordinates, setParsedCoordinates] = useState<LngLatLike[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     const data = getItem<RideData>(CURRENT_RIDE_KEY);
     if (data) {
-        // Add current driver location to the route for display
-        data.route.coordinates.unshift([mockDriverLocation.lng, mockDriverLocation.lat]);
+        let coords = [];
+        if (typeof data.route.coordinates === 'string') {
+            try {
+                coords = JSON.parse(data.route.coordinates);
+            } catch (e) {
+                console.error("Failed to parse coordinates", e);
+            }
+        } else {
+            coords = data.route.coordinates;
+        }
+        setParsedCoordinates(coords);
+        data.route.coordinates = coords; // Ensure it's in the correct format for local state
         setRideData(data);
     } else {
         router.push('/driver'); // No ride data, go back to dash
@@ -102,7 +113,7 @@ function OnRidePage() {
           type: 'LineString',
           coordinates: ridePhase === 'to_pickup'
             ? [mockDriverLocation, rideData.route.pickup].map(p => [p.lng, p.lat]) as LngLatLike[]
-            : rideData.route.coordinates
+            : parsedCoordinates
       }
   } : null;
 

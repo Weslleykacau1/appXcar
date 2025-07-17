@@ -182,7 +182,7 @@ export function ConfirmRideUI() {
             createdAt: serverTimestamp(),
             paymentMethod: paymentMethod,
             route: {
-              coordinates: route,
+              coordinates: JSON.stringify(route),
               distance: distance,
               duration: duration
             }
