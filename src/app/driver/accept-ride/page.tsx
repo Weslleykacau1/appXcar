@@ -273,16 +273,8 @@ function AcceptRidePage() {
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                 <Button variant="ghost" className="h-16 text-base font-bold text-white hover:bg-white/10" onClick={handleRejectRide}>
-                    Recusar
-                </Button>
-                <Button size="lg" className="h-16 bg-primary hover:bg-primary/90 text-lg font-bold" onClick={handleAcceptRide}>
-                    Aceitar
-                </Button>
-            </div>
           </div>
-          <CardContent className="p-4 space-y-3">
+          <CardContent className="p-4 space-y-4">
               <div className="flex items-start gap-4">
                 <div className="flex flex-col items-center mt-1">
                   <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-background"></div>
@@ -294,10 +286,18 @@ function AcceptRidePage() {
                   <p className="font-medium mt-2">{rideData.destination}</p>
                 </div>
               </div>
-               <Badge variant="outline" className="gap-2">
+              <Badge variant="outline" className="gap-2">
                     <User className="h-4 w-4"/>
                     <span className="capitalize">{rideData.rideCategory === 'comfort' ? 'Comfort' : rideData.rideCategory}</span>
-                </Badge>
+              </Badge>
+              <div className="flex items-center gap-3 pt-2">
+                 <Button variant="ghost" className="h-14 text-base font-bold flex-1" onClick={handleRejectRide}>
+                    Recusar
+                </Button>
+                <Button size="lg" className="h-14 text-lg font-bold flex-1" onClick={handleAcceptRide}>
+                    Aceitar
+                </Button>
+              </div>
           </CardContent>
         </Card>
       </div>
