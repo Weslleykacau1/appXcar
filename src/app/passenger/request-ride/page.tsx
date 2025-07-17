@@ -94,6 +94,8 @@ function RequestRidePage() {
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
+  const [isPickingOnMap, setIsPickingOnMap] = useState(false);
+  const [pickedLocation, setPickedLocation] = useState<{address: string, coords: LngLatLike} | null>(null);
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -212,29 +214,6 @@ function RequestRidePage() {
     setSuggestions([]);
     setActiveInput(null);
   };
-
-  const handleSelectShortcut = async (address: string | null, type: AddressType) => {
-    if (!address) {
-      toast({
-          variant: "default",
-          title: "Endereço não definido",
-          description: `Por favor, adicione seu endereço de ${type === 'home' ? 'casa' : 'trabalho'} no seu perfil.`,
-      });
-      router.push('/passenger/profile');
-      return;
-    }
-    const suggestion = await geocodeAddress(address);
-    if (suggestion) {
-        setItem(PRESELECTED_TRIP_KEY, {
-            pickup: null, // Use current location
-            stops: [],
-            destination: suggestion
-        });
-        router.push('/passenger/confirm-ride');
-    } else {
-        toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
-    }
-  }
   
   const handleOpenTripPlanner = (destination?: Suggestion) => {
     // Reset state for new planning session
@@ -281,6 +260,36 @@ function RequestRidePage() {
     newStopSuggestions.splice(index, 1);
     setStopSuggestions(newStopSuggestions);
   };
+  
+  const handleConfirmPickedLocation = () => {
+    if (!pickedLocation) return;
+    const { address, coords } = pickedLocation;
+
+    const newSuggestion: Suggestion = {
+      id: `mapbox-place.${coords[0]},${coords[1]}`,
+      text: address.split(',')[0],
+      place_name: address,
+      center: coords as [number, number],
+    };
+
+    setDestinationSuggestion(newSuggestion);
+    setDestinationInput(address);
+    setIsPickingOnMap(false);
+  };
+  
+  const reverseGeocode = useCallback(debounce(async (lng: number, lat: number) => {
+    if (!mapboxToken) return;
+    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&limit=1&types=address,poi`);
+    const data = await response.json();
+    if (data.features && data.features.length > 0) {
+      const address = data.features[0].place_name;
+      const coords: LngLatLike = [lng, lat];
+      setPickedLocation({ address, coords });
+    } else {
+      const coords: LngLatLike = [lng, lat];
+      setPickedLocation({ address: `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`, coords });
+    }
+  }, 300), [mapboxToken]);
 
   if (isLoading || !user) {
     return (
@@ -320,6 +329,48 @@ function RequestRidePage() {
 
   const firstName = user.name.split(' ')[0];
 
+
+  if (isPickingOnMap) {
+    return (
+        <div className="h-screen w-screen relative flex flex-col bg-background text-foreground">
+             <div className="absolute inset-0 z-0">
+                <Map mapRef={mapRef} onMove={(evt) => reverseGeocode(evt.viewState.longitude, evt.viewState.latitude)} />
+            </div>
+
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                <MapPin className="h-12 w-12 text-pink-500" fill="hsl(var(--primary))" />
+            </div>
+
+             <Button variant="ghost" size="icon" className="absolute top-4 left-4 z-20 bg-background/80 backdrop-blur-sm shadow-md" onClick={() => setIsPickingOnMap(false)}>
+                <ArrowLeft />
+            </Button>
+            <Button variant="ghost" size="icon" className="absolute top-4 right-4 z-20 bg-background/80 backdrop-blur-sm shadow-md" onClick={() => mapRef.current?.flyTo({zoom: 15, essential: true })}>
+                <LocateFixed />
+            </Button>
+
+            <div className="absolute bottom-0 left-0 right-0 z-20 p-4">
+                 <Card className="shadow-2xl">
+                    <CardContent className="p-4 space-y-4">
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-bold">Definir destino</h2>
+                             <div className="p-2 h-14 border rounded-md flex items-center gap-2">
+                                <Search className="h-5 w-5 text-pink-500" />
+                                {pickedLocation ? (
+                                    <p className="font-semibold truncate">{pickedLocation.address}</p>
+                                ): (
+                                    <p className="text-muted-foreground">Movendo mapa...</p>
+                                )}
+                             </div>
+                        </div>
+                        <Button className="w-full h-12 text-lg" onClick={handleConfirmPickedLocation} disabled={!pickedLocation}>
+                            Definir destino
+                        </Button>
+                    </CardContent>
+                 </Card>
+            </div>
+        </div>
+    )
+  }
 
   if (isPlanningTrip) {
     return (
@@ -412,13 +463,7 @@ function RequestRidePage() {
                     </div>
                  ) : (
                     <div className="space-y-1">
-                        <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2">
-                             <div className="p-3 bg-muted rounded-full">
-                                <Star className="h-5 w-5 text-yellow-500" fill="currentColor" />
-                             </div>
-                             <span className="font-semibold">Adicionar atalho</span>
-                        </button>
-                         <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2">
+                         <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2" onClick={() => setIsPickingOnMap(true)}>
                              <div className="p-3 bg-muted rounded-full">
                                 <MapPin className="h-5 w-5 text-pink-500" />
                              </div>
@@ -449,7 +494,7 @@ function RequestRidePage() {
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-             <Card className="bg-card shadow-lg">
+             <Card className="bg-card shadow-lg -mt-16">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>

@@ -2,11 +2,11 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import MapGL, { Marker, GeolocateControl, MapRef, Source, Layer, LngLatLike } from 'react-map-gl';
+import MapGL, { Marker, GeolocateControl, MapRef, Source, Layer, LngLatLike, ViewStateChangeEvent } from 'react-map-gl';
 import { useTheme } from "next-themes";
 import { Car, Flag, MapPin } from 'lucide-react';
 
-export function Map({ mapRef, showMovingCar, pickup, destination, route }: { mapRef?: React.Ref<MapRef>, showMovingCar?: boolean, pickup?: LngLatLike, destination?: LngLatLike, route?: LngLatLike[] | null }) {
+export function Map({ mapRef, showMovingCar, pickup, destination, route, onMove }: { mapRef?: React.Ref<MapRef>, showMovingCar?: boolean, pickup?: LngLatLike, destination?: LngLatLike, route?: LngLatLike[] | null, onMove?: (evt: ViewStateChangeEvent) => void }) {
   const { resolvedTheme } = useTheme();
   const [driverLocation, setDriverLocation] = useState({ longitude: -38.495, latitude: -3.735 });
   const [lineColor, setLineColor] = useState('#000000');
@@ -101,6 +101,7 @@ export function Map({ mapRef, showMovingCar, pickup, destination, route }: { map
         latitude: -3.7327,
         zoom: 12
       }}
+      onMove={onMove}
       style={{width: '100%', height: '100%'}}
       mapStyle={mapStyle}
     >
