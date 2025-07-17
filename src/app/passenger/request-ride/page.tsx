@@ -295,7 +295,7 @@ function RequestRidePage() {
                  </div>
              </div>
              <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-                 <Card className="bg-card shadow-lg -mt-16">
+                 <Card className="bg-card shadow-lg">
                     <CardContent className="p-4 flex items-center gap-4">
                         <div className="bg-primary/20 p-2 rounded-full">
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
@@ -336,11 +336,17 @@ function RequestRidePage() {
             <main className="flex-1 px-4 py-6 space-y-6">
                  <Card className="bg-card shadow-sm">
                     <CardContent className="p-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-start gap-4">
                             <div className="flex flex-col items-center">
-                               <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-background ring-2 ring-blue-500"></div>
-                               <div className="w-px h-8 bg-border my-1 flex-grow"></div>
-                               <div className="w-3 h-3 rounded-full bg-pink-500 border-2 border-background ring-2 ring-pink-500"></div>
+                               <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-background ring-2 ring-blue-500 mt-5"></div>
+                               <div className="w-px h-12 bg-border my-1 flex-grow"></div>
+                                {stopInputs.map((_, index) => (
+                                   <React.Fragment key={`stop-dot-${index}`}>
+                                        <div className="w-3 h-3 rounded-full bg-muted-foreground border-2 border-background ring-2 ring-muted-foreground mt-5"></div>
+                                        <div className="w-px h-12 bg-border my-1 flex-grow"></div>
+                                   </React.Fragment>
+                                ))}
+                               <div className="w-3 h-3 rounded-full bg-pink-500 border-2 border-background ring-2 ring-pink-500 mt-5"></div>
                             </div>
                             <div className="flex-1 space-y-2">
                                 <div className="p-2 rounded-md">
@@ -348,27 +354,49 @@ function RequestRidePage() {
                                     <p className="font-semibold">Localidade atual</p>
                                 </div>
                                 <Separator />
+                                {stopInputs.map((stop, index) => (
+                                    <React.Fragment key={`stop-input-${index}`}>
+                                        <div className="relative">
+                                            <Input
+                                                id={`stop-planner-${index}`}
+                                                placeholder={`Parada ${index + 1}`}
+                                                className="border-none p-2 h-auto text-base font-semibold focus-visible:ring-0 pr-8"
+                                                value={stop}
+                                                onChange={(e) => handleInputChange(e, 'stop', index)}
+                                                onFocus={() => setActiveInput(`stop${index+1}` as 'stop1' | 'stop2')}
+                                                autoComplete="off"
+                                            />
+                                            <button onClick={() => handleRemoveStop(index)} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 bg-muted rounded-full flex items-center justify-center">
+                                                <X className="h-4 w-4"/>
+                                            </button>
+                                        </div>
+                                        <Separator />
+                                    </React.Fragment>
+                                ))}
+
                                 <div className="relative">
                                     <Input
                                         id="destination-planner"
                                         placeholder="Destino"
-                                        className="border-none p-2 h-auto text-base font-semibold focus-visible:ring-0"
+                                        className="border-none p-2 h-auto text-base font-semibold focus-visible:ring-0 pr-8"
                                         required
                                         value={destinationInput}
                                         onChange={(e) => handleInputChange(e, 'destination')}
                                         onFocus={() => setActiveInput('destination')}
                                         autoComplete="off"
                                     />
-                                     <button className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 bg-muted rounded-full flex items-center justify-center">
+                                    {stopInputs.length < 2 && (
+                                     <button onClick={handleAddStop} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 bg-muted rounded-full flex items-center justify-center">
                                         <Plus className="h-4 w-4"/>
                                     </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                 {suggestions.length > 0 && activeInput === 'destination' ? (
+                 {suggestions.length > 0 && activeInput ? (
                     <div className="space-y-1">
                         {suggestions.map((suggestion) => (
                              <button key={suggestion.id} className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(suggestion)}>
@@ -477,5 +505,3 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
-
-    
