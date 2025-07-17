@@ -61,6 +61,10 @@ function PassengerProfilePage() {
     
     const idInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const photoRef = useRef<HTMLCanvasElement>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
 
     const fetchProfileData = async () => {
         if (!user) return;
@@ -129,6 +133,90 @@ function PassengerProfilePage() {
     useEffect(() => {
         setIsDarkMode(theme === 'dark');
     }, [theme]);
+    
+    useEffect(() => {
+        const videoElement = videoRef.current;
+        const stream = videoElement?.srcObject as MediaStream | null;
+        
+        if (openModal !== 'upload-photo' && stream) {
+            stream.getTracks().forEach(track => track.stop());
+            if (videoElement) videoElement.srcObject = null;
+        }
+
+        if (openModal === 'upload-photo') {
+          const getCameraPermission = async () => {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({video: true});
+              setHasCameraPermission(true);
+              if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+              }
+            } catch (error) {
+              console.error('Error accessing camera:', error);
+              setHasCameraPermission(false);
+              toast({
+                variant: 'destructive',
+                title: t('toast.camera_denied_title'),
+                description: t('toast.camera_denied_desc'),
+              });
+            }
+          };
+          getCameraPermission();
+          
+          return () => {
+             if (videoRef.current && videoRef.current.srcObject) {
+                const stream = videoRef.current.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+            }
+          }
+        }
+    }, [openModal, toast, t]);
+    
+    const takePhoto = () => {
+        const video = videoRef.current;
+        const photo = photoRef.current;
+
+        if (video && photo) {
+            const size = Math.min(video.videoWidth, video.videoHeight);
+            const x = (video.videoWidth - size) / 2;
+            const y = (video.videoHeight - size) / 2;
+        
+            photo.width = 300;
+            photo.height = 300;
+
+            const context = photo.getContext('2d');
+            if (context) {
+                context.drawImage(video, x, y, size, size, 0, 0, 300, 300);
+                setPhotoDataUrl(photo.toDataURL('image/png'));
+            }
+        }
+    };
+    
+    const handleGalleryFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setPhotoDataUrl(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSavePhoto = async () => {
+        if (!user || !photoDataUrl) return;
+
+        try {
+            const docRef = doc(db, "profiles", user.id);
+            await updateDoc(docRef, { photoUrl: photoDataUrl });
+            setProfileData({ ...profileData, photoUrl: photoDataUrl });
+            toast({ title: t('toast.photo_saved_title'), description: t('toast.photo_saved_desc') });
+            setPhotoDataUrl(null);
+            setOpenModal(null);
+        } catch (error) {
+            toast({ variant: "destructive", title: t('toast.error_title'), description: t('toast.photo_save_error_desc') });
+        }
+    }
 
 
     const handleThemeChange = (checked: boolean) => {
@@ -174,6 +262,60 @@ function PassengerProfilePage() {
             toast({ variant: "destructive", title: t('toast.error_title'), description: t('toast.info_save_error_desc') });
         }
     };
+    
+    const handleCloseModal = () => {
+        setOpenModal(null);
+    }
+    
+    const ModalContent = () => {
+        switch(openModal) {
+             case 'upload-photo':
+                return (
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>{t('profile.change_photo')}</DialogTitle></DialogHeader>
+                        <div className="flex flex-col items-center space-y-4 py-4">
+                            <div className="w-full max-w-sm aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center relative">
+                                <video ref={videoRef} className={cn("w-full h-full object-cover", photoDataUrl && "hidden")} autoPlay muted playsInline />
+                                {photoDataUrl && (
+                                    <img src={photoDataUrl} alt={t('profile.your_photo_alt')} className="w-full h-full object-cover"/>
+                                )}
+                                {hasCameraPermission === false && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 p-4">
+                                        <Alert variant="destructive">
+                                            <AlertTitle>{t('profile.camera_unavailable_title')}</AlertTitle>
+                                            <AlertDescription>{t('profile.camera_unavailable_desc')}</AlertDescription>
+                                        </Alert>
+                                    </div>
+                                )}
+                            </div>
+                            <canvas ref={photoRef} className="hidden"></canvas>
+                            <input type="file" ref={galleryInputRef} className="hidden" onChange={handleGalleryFileSelect} accept="image/*" />
+                            {photoDataUrl ? (
+                                <div className="flex flex-col space-y-2 w-full max-w-sm">
+                                    <Button onClick={handleSavePhoto}>{t('profile.save_photo')}</Button>
+                                    <Button variant="ghost" onClick={() => setPhotoDataUrl(null)}>{t('profile.take_another')}</Button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                                    <Button onClick={takePhoto} disabled={!hasCameraPermission}>
+                                        <Camera className="mr-2"/> {t('profile.take_photo_btn')}
+                                    </Button>
+                                    <Button variant="outline" onClick={() => galleryInputRef.current?.click()}>
+                                        <Library className="mr-2"/> {t('profile.choose_from_gallery')}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button type="button" variant="outline">{t('common.cancel')}</Button></DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                );
+            default:
+                return null;
+        }
+    }
+
 
     if (!user || isLoading) {
          return <div className="flex h-screen w-full items-center justify-center">{t('common.loading')}</div>;
@@ -190,12 +332,17 @@ function PassengerProfilePage() {
             </header>
             <main className="flex-1 py-6 container mx-auto px-4 pb-24">
                 <div className="flex flex-col items-center text-center">
-                    <Avatar className="h-28 w-28 border-4 border-background shadow-md">
-                        <AvatarImage src={profileData.photoUrl || undefined} data-ai-hint="person avatar" />
-                        <AvatarFallback>
-                            <User className="h-12 w-12 text-muted-foreground" />
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                        <Avatar className="h-28 w-28 border-4 border-background shadow-md">
+                            <AvatarImage src={profileData.photoUrl || undefined} data-ai-hint="person avatar" />
+                            <AvatarFallback>
+                                <User className="h-12 w-12 text-muted-foreground" />
+                            </AvatarFallback>
+                        </Avatar>
+                        <button onClick={() => setOpenModal('upload-photo')} className="absolute bottom-0 right-0 h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background">
+                            <Plus className="h-5 w-5" />
+                        </button>
+                    </div>
                     <h2 className="text-2xl font-bold mt-4">{profileData.name}</h2>
                     <p className="text-sm text-muted-foreground mt-2">{t('profile.member_since', { date: 'Fevereiro 2023' })}</p>
                 </div>
@@ -311,6 +458,10 @@ function PassengerProfilePage() {
                 </div>
             </main>
             
+            <Dialog open={!!openModal} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
+                <ModalContent />
+            </Dialog>
+
             <Sheet open={isHistorySheetOpen} onOpenChange={setIsHistorySheetOpen}>
                 <SheetContent className="w-full sm:max-w-md p-0">
                     <SheetHeader className="p-6 border-b">
