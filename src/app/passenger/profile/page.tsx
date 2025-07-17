@@ -261,8 +261,6 @@ function PassengerProfilePage() {
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
-                homeAddress: profileData.homeAddress,
-                workAddress: profileData.workAddress,
             });
             toast({ title: t('toast.info_saved_title'), description: t('toast.info_saved_desc') });
             setIsEditingProfile(false);
@@ -400,16 +398,35 @@ function PassengerProfilePage() {
                             <Label htmlFor="phone">{t('profile.form.phone')}</Label>
                             <Input id="phone" type="tel" value={profileData.phone || ''} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
                         </div>
-                        <div>
-                            <Label htmlFor="home">{t('profile.address.home')}</Label>
-                            <Input id="home" value={profileData.homeAddress || ''} onChange={(e) => setProfileData({...profileData, homeAddress: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} placeholder={t('profile.address.add_home')} />
-                        </div>
-                         <div>
-                            <Label htmlFor="work">{t('profile.address.work')}</Label>
-                            <Input id="work" value={profileData.workAddress || ''} onChange={(e) => setProfileData({...profileData, workAddress: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} placeholder={t('profile.address.add_work')} />
-                        </div>
                      </CardContent>
                 </Card>
+
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>{t('profile.address.saved_locations')}</CardTitle>
+                        <CardDescription>Adicione ou edite seus locais para viagens rápidas.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-1">
+                       <button onClick={() => handleOpenAddressSheet('home')} className="flex items-center w-full p-3 -ml-3 text-left rounded-lg hover:bg-muted">
+                           <Home className="h-5 w-5 mr-4 text-muted-foreground" />
+                           <div className="flex-1">
+                                <p className="font-semibold">{t('profile.address.home')}</p>
+                                <p className={cn("text-sm", profileData.homeAddress ? 'text-muted-foreground' : 'text-primary')}>{profileData.homeAddress || t('profile.address.add_home')}</p>
+                           </div>
+                           <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                       </button>
+                        <Separator />
+                       <button onClick={() => handleOpenAddressSheet('work')} className="flex items-center w-full p-3 -ml-3 text-left rounded-lg hover:bg-muted">
+                           <Briefcase className="h-5 w-5 mr-4 text-muted-foreground" />
+                           <div className="flex-1">
+                                <p className="font-semibold">{t('profile.address.work')}</p>
+                                <p className={cn("text-sm", profileData.workAddress ? 'text-muted-foreground' : 'text-primary')}>{profileData.workAddress || t('profile.address.add_work')}</p>
+                           </div>
+                           <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                       </button>
+                    </CardContent>
+                </Card>
+
 
                 <Card className="mt-6">
                     <CardHeader>
@@ -570,3 +587,5 @@ function PassengerProfilePage() {
 }
 
 export default withAuth(PassengerProfilePage, ["passenger"]);
+
+    
