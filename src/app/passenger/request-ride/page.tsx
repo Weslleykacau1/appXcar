@@ -6,7 +6,7 @@ import { withAuth } from "@/components/with-auth";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus } from "lucide-react";
+import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Map } from "@/components/map";
 import { cn } from "@/lib/utils";
@@ -137,21 +137,25 @@ function RequestRidePage() {
         const ridesRef = collection(db, "rides");
         const q = query(
             ridesRef, 
-            where("passengerId", "==", user.id),
-            where("status", "==", "completed"),
-            orderBy("createdAt", "desc"),
-            limit(3)
+            where("passengerId", "==", user.id)
         );
         const querySnapshot = await getDocs(q);
-        const history: RecentRide[] = querySnapshot.docs.map(doc => {
+        const allRides = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
                 destinationAddress: data.destinationAddress,
                 createdAt: data.createdAt.toDate(),
+                status: data.status,
             };
         });
-        setRecentRides(history);
+
+        const completedRides = allRides
+            .filter(ride => ride.status === 'completed')
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .slice(0, 3);
+        
+        setRecentRides(completedRides);
     };
     loadUserData();
    }, [user, fetchUserProfile]);
@@ -252,6 +256,9 @@ function RequestRidePage() {
                                 </div>
                             </div>
                         </div>
+                         <Button variant="ghost" className="w-full justify-start p-0 h-auto text-primary gap-2">
+                            <Plus className="h-5 w-5"/> Adicionar Parada
+                        </Button>
                     </CardContent>
                 </Card>
                 
