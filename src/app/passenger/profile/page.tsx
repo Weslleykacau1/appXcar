@@ -375,10 +375,6 @@ function PassengerProfilePage() {
                             <Input id="phone" type="tel" value={profileData.phone || ''} onChange={(e) => setProfileData({...profileData, phone: e.target.value})} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
                         </div>
                         <div>
-                            <Label htmlFor="home">{t('profile.address.home')}</Label>
-                            <Input id="home" value={profileData.homeAddress || ''} onChange={(e) => setProfileData({...profileData, homeAddress: e.target.value})} placeholder={t('profile.address.add_home')} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
-                        </div>
-                        <div>
                             <Label htmlFor="work">{t('profile.address.work')}</Label>
                             <Input id="work" value={profileData.workAddress || ''} onChange={(e) => setProfileData({...profileData, workAddress: e.target.value})} placeholder={t('profile.address.add_work')} disabled={!isEditingProfile} className={cn(!isEditingProfile && "bg-muted border-none")} />
                         </div>
