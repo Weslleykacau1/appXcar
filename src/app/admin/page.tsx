@@ -115,6 +115,7 @@ const defaultFares = {
         costPerMinute: "0.45",
         costPerKm: "1.50",
         bookingFee: "2.00",
+        stopFee: "1.00",
         imageUrl: viagemCarImage
     },
     executive: {
@@ -122,6 +123,7 @@ const defaultFares = {
         costPerMinute: "0.30",
         costPerKm: "1.20",
         bookingFee: "2.00",
+        stopFee: "1.00",
         imageUrl: executiveCarImage
     }
 };
@@ -928,7 +930,7 @@ function AdminDashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Tarifas por Categoria</CardTitle>
-                        <CardDescription>Defina o valor por km e imagem para cada categoria de viagem.</CardDescription>
+                        <CardDescription>Defina os valores e imagem para cada categoria de viagem.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <Accordion type="single" collapsible className="w-full" defaultValue="comfort">
@@ -955,6 +957,10 @@ function AdminDashboard() {
                                     <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="comfort-cost-km">Custo/KM (R$)</Label>
                                         <Input id="comfort-cost-km" type="number" value={fares.comfort.costPerKm} onChange={(e) => handleFareChange(e, 'comfort', 'costPerKm')} step="0.01" />
+                                    </div>
+                                     <div className="grid grid-cols-2 items-center gap-4">
+                                        <Label htmlFor="comfort-stop-fee">Taxa/Parada (R$)</Label>
+                                        <Input id="comfort-stop-fee" type="number" value={fares.comfort.stopFee} onChange={(e) => handleFareChange(e, 'comfort', 'stopFee')} step="0.01" />
                                     </div>
                                     <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="comfort-booking-fee">Taxa Reserva (R$)</Label>
@@ -985,6 +991,10 @@ function AdminDashboard() {
                                     <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="executive-cost-km">Custo/KM (R$)</Label>
                                         <Input id="executive-cost-km" type="number" value={fares.executive.costPerKm} onChange={(e) => handleFareChange(e, 'executive', 'costPerKm')} step="0.01" />
+                                    </div>
+                                      <div className="grid grid-cols-2 items-center gap-4">
+                                        <Label htmlFor="executive-stop-fee">Taxa/Parada (R$)</Label>
+                                        <Input id="executive-stop-fee" type="number" value={fares.executive.stopFee} onChange={(e) => handleFareChange(e, 'executive', 'stopFee')} step="0.01" />
                                     </div>
                                     <div className="grid grid-cols-2 items-center gap-4">
                                         <Label htmlFor="executive-booking-fee">Taxa Reserva (R$)</Label>
@@ -1248,3 +1258,4 @@ export default withAuth(AdminDashboard, ["admin"]);
     
 
     
+

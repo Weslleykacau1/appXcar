@@ -247,11 +247,7 @@ function RequestRidePage() {
 
     const tripData = {
         pickup: pickupSuggestion, // Can be null for "Current Location"
-        stops: stopSuggestions.filter(s => s !== null).map(s => ({
-            lat: s!.center[1],
-            lng: s!.center[0],
-            address: s!.place_name,
-        })),
+        stops: stopSuggestions.filter((s): s is Suggestion => s !== null),
         destination: destinationSuggestion
     }
 
@@ -281,7 +277,7 @@ function RequestRidePage() {
     const { address, coords } = pickedLocation;
 
     const newSuggestion: Suggestion = {
-      id: `mapbox-place.${coords[0]},${coords[1]}`,
+      id: `mapbox-place.${(coords as number[]).join(',')}`,
       text: address.split(',')[0],
       place_name: address,
       center: coords as [number, number],
@@ -704,3 +700,4 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
+

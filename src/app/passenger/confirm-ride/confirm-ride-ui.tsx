@@ -53,6 +53,7 @@ interface FareConfig {
     costPerMinute: number;
     costPerKm: number;
     bookingFee: number;
+    stopFee: number;
     imageUrl: string;
 }
 
@@ -62,8 +63,8 @@ interface AppFareConfig {
 }
 
 const defaultFareConfig: AppFareConfig = {
-    comfort: { baseFare: 3.50, costPerMinute: 0.45, costPerKm: 1.50, bookingFee: 2.00, imageUrl: viagemCarImage },
-    executive: { baseFare: 2.50, costPerMinute: 0.30, costPerKm: 1.20, bookingFee: 2.00, imageUrl: executiveCarImage }
+    comfort: { baseFare: 3.50, costPerMinute: 0.45, costPerKm: 1.50, bookingFee: 2.00, stopFee: 1.00, imageUrl: viagemCarImage },
+    executive: { baseFare: 2.50, costPerMinute: 0.30, costPerKm: 1.20, bookingFee: 2.00, stopFee: 1.00, imageUrl: executiveCarImage }
 };
 
 const paymentIcons: { [key in PaymentMethod]: React.ReactNode } = {
@@ -103,7 +104,7 @@ export function ConfirmRideUI() {
         const numericFares = Object.entries(storedFares).reduce((acc, [category, config]) => {
             acc[category as RideCategory] = Object.entries(config).reduce((cfg, [key, value]) => {
                 if(key !== 'imageUrl') {
-                    cfg[key as keyof FareConfig] = parseFloat(value as string);
+                    cfg[key as keyof Omit<FareConfig, 'imageUrl'>] = parseFloat(value as string);
                 } else {
                     cfg[key as keyof FareConfig] = value as string;
                 }
@@ -141,7 +142,8 @@ export function ConfirmRideUI() {
     const config = fareConfig[category];
     const isSurge = Math.random() < 0.2; // 20% chance of surge pricing
     const multiplier = isSurge ? SURGE_MULTIPLIER : 1;
-    const fare = (config.baseFare + (duration * config.costPerMinute) + (distance * config.costPerKm) + config.bookingFee) * multiplier;
+    const stopsFee = (tripData?.stops.length || 0) * (config.stopFee || 0);
+    const fare = (config.baseFare + (duration * config.costPerMinute) + (distance * config.costPerKm) + config.bookingFee + stopsFee) * multiplier;
     return fare;
   };
 
@@ -156,7 +158,8 @@ export function ConfirmRideUI() {
         tripData.destination.center
     ];
 
-    const coordinatesString = allWaypoints.map(c => c.join(',')).join(';');
+    const coordinatesString = allWaypoints.map(c => Array.isArray(c) ? c.join(',') : `${c.lng},${c.lat}`).join(';');
+
 
     const response = await fetch(
       `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?steps=true&geometries=geojson&access_token=${mapboxToken}`
@@ -170,8 +173,8 @@ export function ConfirmRideUI() {
       setDuration(routeData.duration / 60); // seconds to minutes
       
       const bounds: [LngLatLike, LngLatLike] = [
-          allWaypoints[0],
-          allWaypoints[allWaypoints.length - 1]
+          allWaypoints[0] as LngLatLike,
+          allWaypoints[allWaypoints.length - 1] as LngLatLike
       ];
       mapRef.current?.fitBounds(bounds, { padding: 80, duration: 1000 });
     }
@@ -179,8 +182,10 @@ export function ConfirmRideUI() {
   }, [pickupCoords, tripData, mapboxToken]);
 
   useEffect(() => {
-    getRoute();
-  }, [getRoute]);
+    if (pickupCoords && tripData) {
+      getRoute();
+    }
+  }, [getRoute, pickupCoords, tripData]);
 
   const handleRequestRide = async () => {
     if (!user || !pickupCoords || !tripData || !route) return;
@@ -194,10 +199,9 @@ export function ConfirmRideUI() {
             passengerPhotoUrl: user.photoUrl || '',
             pickupAddress: tripData.pickup?.place_name || "Localização Atual",
             destinationAddress: tripData.destination.place_name,
-            stops: tripData.stops || [],
-            pickupCoords: { lat: pickupCoords[1], lng: pickupCoords[0] },
+            stops: tripData.stops.map(s => ({ address: s.place_name, coords: { lat: s.center[1], lng: s.center[0] } })) || [],
+            pickupCoords: { lat: (pickupCoords as number[])[1], lng: (pickupCoords as number[])[0] },
             destinationCoords: { lat: tripData.destination.center[1], lng: tripData.destination.center[0] },
-            stopsCoords: tripData.stops.map(s => ({ lat: s.center[1], lng: s.center[0] })),
             fare: fare,
             category: selectedCategory,
             status: 'pending',
@@ -250,7 +254,7 @@ export function ConfirmRideUI() {
       </header>
       
       <div className="flex-1">
-        <Map mapRef={mapRef} pickup={pickupCoords as LngLatLike} destination={tripData?.destination.center as LngLatLike} route={route} />
+        <Map mapRef={mapRef} pickup={pickupCoords} destination={tripData?.destination.center as LngLatLike} stops={tripData?.stops.map(s => s.center)} route={route} />
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl shadow-2xl p-4 space-y-4">
@@ -348,3 +352,4 @@ export function ConfirmRideUI() {
     </div>
   );
 }
+

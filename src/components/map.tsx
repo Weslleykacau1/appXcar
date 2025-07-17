@@ -4,9 +4,9 @@
 import React, { useEffect, useState } from 'react';
 import MapGL, { Marker, GeolocateControl, MapRef, Source, Layer, LngLatLike, ViewStateChangeEvent } from 'react-map-gl';
 import { useTheme } from "next-themes";
-import { Car, Flag, MapPin } from 'lucide-react';
+import { Car, Flag, MapPin, Circle } from 'lucide-react';
 
-export function Map({ mapRef, showMovingCar, pickup, destination, route, onMove }: { mapRef?: React.Ref<MapRef>, showMovingCar?: boolean, pickup?: LngLatLike, destination?: LngLatLike, route?: LngLatLike[] | null, onMove?: (evt: ViewStateChangeEvent) => void }) {
+export function Map({ mapRef, showMovingCar, pickup, destination, stops, route, onMove }: { mapRef?: React.Ref<MapRef>, showMovingCar?: boolean, pickup?: LngLatLike, destination?: LngLatLike, stops?: LngLatLike[], route?: LngLatLike[] | null, onMove?: (evt: ViewStateChangeEvent) => void }) {
   const { resolvedTheme } = useTheme();
   const [driverLocation, setDriverLocation] = useState({ longitude: -38.495, latitude: -3.735 });
   const [lineColor, setLineColor] = useState('#000000');
@@ -108,14 +108,21 @@ export function Map({ mapRef, showMovingCar, pickup, destination, route, onMove 
       <GeolocateControl style={{display: 'none'}} position="top-left" trackUserLocation={true} />
       
       {pickup && (
-         <Marker longitude={pickup[0]} latitude={pickup[1]} anchor="center">
-            <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-md"></div>
+         <Marker longitude={(pickup as number[])[0]} latitude={(pickup as number[])[1]} anchor="center">
+            <MapPin className="h-8 w-8 text-blue-500" fill="currentColor" />
          </Marker>
       )}
 
+      {stops && stops.map((stop, index) => (
+        <Marker key={`stop-${index}`} longitude={(stop as number[])[0]} latitude={(stop as number[])[1]} anchor="center">
+            <div className="bg-background rounded-full p-1 shadow-md">
+                <Circle className="text-orange-500 h-5 w-5" fill="currentColor"/>
+            </div>
+        </Marker>
+      ))}
 
       {destination && (
-        <Marker longitude={destination[0]} latitude={destination[1]} anchor="center">
+        <Marker longitude={(destination as number[])[0]} latitude={(destination as number[])[1]} anchor="center">
             <Flag className="h-8 w-8 text-red-500" fill="currentColor" />
         </Marker>
       )}
@@ -146,3 +153,4 @@ export function Map({ mapRef, showMovingCar, pickup, destination, route, onMove 
     </MapGL>
   );
 }
+
