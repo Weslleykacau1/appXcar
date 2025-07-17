@@ -66,20 +66,27 @@ export default function SignupPage() {
       if (userCredential.user) {
         const user = userCredential.user;
         
+        // Create a comprehensive user profile with placeholders
         await setDoc(doc(db, "profiles", user.uid), {
           name: values.name,
           email: values.email,
           role: values.role,
           status: 'Ativo',
           verification: 'Pendente',
+          phone: '',
+          cpf: '',
           photoUrl: '',
-          cnhUrl: '',
-          crlvUrl: '',
-          identityDocumentUrl: '',
+          cnhUrl: '', // for drivers
+          crlvUrl: '', // for drivers
+          identityDocumentUrl: '', // for passengers
           addressProofUrl: '',
           homeAddress: '',
           workAddress: '',
           savedLocations: [],
+          vehicle_model: '',
+          vehicle_license_plate: '',
+          vehicle_color: '',
+          vehicle_year: '',
         });
         
         toast({
