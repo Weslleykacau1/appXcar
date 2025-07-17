@@ -92,6 +92,8 @@ function RequestRidePage() {
   const [pickupSuggestion, setPickupSuggestion] = useState<Suggestion | null>(null);
   const [destinationSuggestion, setDestinationSuggestion] = useState<Suggestion | null>(null);
   const [stopSuggestions, setStopSuggestions] = useState<(Suggestion | null)[]>([]);
+  const [selectedShortcutSuggestion, setSelectedShortcutSuggestion] = useState<Suggestion | null>(null);
+
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
@@ -195,6 +197,7 @@ function RequestRidePage() {
     } else if (type === 'shortcut') {
         setShortcutInput(value);
         setActiveInput('shortcut');
+        setSelectedShortcutSuggestion(null); // Clear selection when user types again
     }
     debouncedFetchSuggestions(value);
   };
@@ -216,13 +219,11 @@ function RequestRidePage() {
         newStopInputs[index] = suggestion.place_name;
         setStopInputs(newStopInputs);
     } else if (activeInput === 'shortcut') {
-        // Logic to handle shortcut saving will be added here later.
-        console.log("Selected shortcut address:", suggestion);
-        toast({ title: "Endereço selecionado", description: "Próximo passo: salvar como atalho." });
         setShortcutInput(suggestion.place_name);
+        setSelectedShortcutSuggestion(suggestion);
     }
     setSuggestions([]);
-    setActiveInput(null);
+    // Do not set activeInput to null here for the shortcut flow
   };
   
   const handleOpenTripPlanner = (destination?: Suggestion) => {
@@ -315,6 +316,19 @@ function RequestRidePage() {
             router.push('/passenger/profile');
         }
     };
+    
+    const handleCreateShortcut = () => {
+        if (!selectedShortcutSuggestion) return;
+        // Logic to save the shortcut would go here.
+        // For now, we'll just show a toast and close the screen.
+        toast({
+            title: "Atalho Criado!",
+            description: `O atalho para "${selectedShortcutSuggestion.text}" foi salvo.`
+        });
+        setIsAddingShortcut(false);
+        setShortcutInput("");
+        setSelectedShortcutSuggestion(null);
+    }
 
   if (isLoading || !user) {
     return (
@@ -376,7 +390,7 @@ function RequestRidePage() {
                         onFocus={() => setActiveInput('shortcut')}
                     />
                 </div>
-                 {suggestions.length > 0 && activeInput === 'shortcut' && (
+                {!selectedShortcutSuggestion && suggestions.length > 0 && activeInput === 'shortcut' && (
                     <div className="space-y-1 mt-4">
                         {suggestions.map((suggestion) => (
                              <button key={suggestion.id} className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(suggestion)}>
@@ -391,6 +405,13 @@ function RequestRidePage() {
                         ))}
                     </div>
                  )}
+                 {selectedShortcutSuggestion && (
+                    <div className="mt-auto pb-4">
+                        <Button className="w-full h-12 text-lg" onClick={handleCreateShortcut}>
+                            Criar atalho
+                        </Button>
+                    </div>
+                )}
             </main>
         </div>
       )
@@ -528,7 +549,7 @@ function RequestRidePage() {
                         ))}
                     </div>
                  ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-4">
                          <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2" onClick={() => setIsPickingOnMap(true)}>
                              <div className="p-3 bg-muted rounded-full">
                                 <MapPin className="h-5 w-5 text-pink-500" />
@@ -594,7 +615,7 @@ function RequestRidePage() {
                     <span className="text-sm font-semibold">Trabalho</span>
                 </button>
                  <button 
-                    onClick={() => toast({title: "Em breve!", description: "Você poderá adicionar mais atalhos aqui."})}
+                    onClick={() => setIsAddingShortcut(true)}
                     className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
                 >
                     <Plus className="h-6 w-6 text-primary"/>
