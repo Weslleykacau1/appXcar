@@ -26,6 +26,7 @@ import { viagemCarImage, executiveCarImage } from "@/lib/images";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 type RideCategory = "comfort" | "executive";
@@ -93,6 +94,7 @@ function RequestRidePage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { toast } = useToast();
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -114,6 +116,7 @@ function RequestRidePage() {
    useEffect(() => {
     const loadUserData = async () => {
         if (!user) return;
+        setIsLoading(true);
         const userProfile = await fetchUserProfile(user);
         if (userProfile) {
             setHomeAddress(userProfile.homeAddress || null);
@@ -143,6 +146,7 @@ function RequestRidePage() {
             .slice(0, 3);
         
         setRecentRides(completedRides);
+        setIsLoading(false);
     };
 
     loadUserData();
@@ -276,7 +280,22 @@ function RequestRidePage() {
     setStopSuggestions(newStopSuggestions);
   };
 
-  if (!user) return null;
+  if (isLoading || !user) {
+    return (
+        <div className="flex flex-col min-h-screen bg-background text-foreground p-4 space-y-6 pb-24">
+             <h1 className="text-3xl font-bold"><Skeleton className="h-8 w-48"/></h1>
+             <Skeleton className="h-14 w-full rounded-full" />
+             <Skeleton className="h-24 w-full rounded-lg" />
+             <Separator/>
+             <h2 className="text-lg font-semibold"><Skeleton className="h-6 w-32"/></h2>
+             <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+        </div>
+    );
+  }
 
   const firstName = user.name.split(' ')[0];
 
