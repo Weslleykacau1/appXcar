@@ -385,11 +385,11 @@ function OnRidePage() {
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" onClick={() => handleNavigate('waze')}>
                 <Navigation className="mr-2 h-4 w-4" />
-                Navegar com Waze
+                Waze
               </Button>
               <Button variant="outline" onClick={() => handleNavigate('google')}>
                 <Navigation className="mr-2 h-4 w-4" />
-                Navegar com Maps
+                Maps
               </Button>
             </div>
 
