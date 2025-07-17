@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MapGL, { Marker, Source, Layer, LngLatLike, MapRef } from 'react-map-gl';
 import type {LineLayer} from 'react-map-gl';
 import { useTheme } from 'next-themes';
-import { MapPin, Phone, Flag, Star, MessageSquare, Shield, Circle } from "lucide-react";
+import { MapPin, Phone, Flag, Star, MessageSquare, Shield, Circle, Navigation } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { setItem, getItem, removeItem } from "@/lib/storage";
@@ -198,6 +198,33 @@ function OnRidePage() {
     }
   };
 
+  const handleNavigate = (app: 'waze' | 'google') => {
+    if (!rideData) return;
+    
+    let destinationCoords;
+    if (ridePhase === 'to_pickup') {
+      destinationCoords = rideData.route.pickup;
+    } else {
+      // Find the next destination (first stop or final destination)
+      const nextStop = rideData.stops?.[0]; // This needs to be improved to track which stop is next
+      destinationCoords = nextStop || rideData.route.destination;
+    }
+    
+    const lat = destinationCoords.lat;
+    const lng = destinationCoords.lng;
+
+    let url = '';
+    if (app === 'waze') {
+      url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+    } else if (app === 'google') {
+      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    }
+
+    if (url) {
+      window.open(url, '_blank');
+    }
+  };
+
   if (!mapboxToken || !rideData) {
     return (
       <div className="w-full h-screen bg-muted flex items-center justify-center">
@@ -322,7 +349,7 @@ function OnRidePage() {
                     <div className="flex items-start gap-4">
                         <div className="flex flex-col items-center mt-1">
                            <MapPin className="h-5 w-5 text-blue-500" />
-                           {(rideData.stops && rideData.stops.length > 0) && (
+                           {rideData.stops && rideData.stops.length > 0 && (
                                 <Separator orientation="vertical" className="h-6 my-1 bg-border" />
                            )}
                            {rideData.stops && rideData.stops.map((_, index) => (
@@ -354,6 +381,17 @@ function OnRidePage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={() => handleNavigate('waze')}>
+                <Navigation className="mr-2 h-4 w-4" />
+                Navegar com Waze
+              </Button>
+              <Button variant="outline" onClick={() => handleNavigate('google')}>
+                <Navigation className="mr-2 h-4 w-4" />
+                Navegar com Maps
+              </Button>
+            </div>
 
              {ridePhase === 'to_pickup' && (
                 <Button onClick={handleArrivedAtPickup} className="w-full h-12 text-base">
