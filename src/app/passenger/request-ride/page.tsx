@@ -317,6 +317,23 @@ function RequestRidePage() {
         }
     };
     
+    const handlePlannerShortcutClick = async (type: 'home' | 'work') => {
+        const address = type === 'home' ? homeAddress : workAddress;
+        if (address) {
+            const suggestion = await geocodeAddress(address);
+            if (suggestion) {
+                setDestinationSuggestion(suggestion);
+                setDestinationInput(suggestion.place_name);
+                setSuggestions([]);
+                setActiveInput(null);
+            } else {
+                toast({ variant: 'destructive', title: 'Endereço não encontrado' });
+            }
+        } else {
+            router.push('/passenger/profile');
+        }
+    };
+
     const handleCreateShortcut = () => {
         if (!selectedShortcutSuggestion) return;
         // Logic to save the shortcut would go here.
@@ -550,6 +567,21 @@ function RequestRidePage() {
                     </div>
                  ) : (
                     <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            {homeAddress && (
+                                <button className="flex items-center gap-3 p-3 text-left rounded-lg bg-muted hover:bg-muted/80" onClick={() => handlePlannerShortcutClick('home')}>
+                                    <Home className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">Casa</span>
+                                </button>
+                            )}
+                             {workAddress && (
+                                <button className="flex items-center gap-3 p-3 text-left rounded-lg bg-muted hover:bg-muted/80" onClick={() => handlePlannerShortcutClick('work')}>
+                                    <Briefcase className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">Trabalho</span>
+                                </button>
+                            )}
+                        </div>
+                        <Separator/>
                          <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2" onClick={() => setIsPickingOnMap(true)}>
                              <div className="p-3 bg-muted rounded-full">
                                 <MapPin className="h-5 w-5 text-pink-500" />
@@ -667,3 +699,4 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
+
