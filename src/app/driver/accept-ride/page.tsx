@@ -186,7 +186,7 @@ function AcceptRidePage() {
         interactive={false}
       >
         <Marker longitude={rideData.route.pickup.lng} latitude={rideData.route.pickup.lat}>
-            <MapPin className="text-primary h-8 w-8" fill="hsl(var(--primary))"/>
+            <MapPin className="text-blue-500 h-8 w-8" fill="currentColor"/>
         </Marker>
          <Marker longitude={-38.5267} latitude={-3.7327} anchor="center">
              <div className="w-8 h-8 rounded-full bg-background flex items-center justify-center shadow-lg">
@@ -211,11 +211,11 @@ function AcceptRidePage() {
 
       <div className="absolute bottom-0 left-0 right-0 p-4">
         <Card className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl overflow-hidden">
-          <div className="p-4 bg-green-500 text-white relative">
+          <div className="p-4 bg-secondary text-secondary-foreground relative">
              <Progress value={(timeLeft / 15) * 100} className="absolute top-0 left-0 w-full h-1 rounded-none [&>div]:bg-green-400" />
              <div className="flex justify-between items-center">
                 <div>
-                  <Badge variant="secondary" className="bg-green-600 text-white border-none">
+                  <Badge variant="secondary" className="bg-green-600/80 text-white border-none">
                     <Zap className="h-4 w-4 mr-1.5"/>
                     Alta demanda
                   </Badge>
@@ -248,7 +248,7 @@ function AcceptRidePage() {
           <CardContent className="p-4 space-y-3">
               <div className="flex items-start gap-4">
                 <div className="flex flex-col items-center mt-1">
-                  <div className="w-4 h-4 rounded-full bg-primary border-2 border-background"></div>
+                  <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-background"></div>
                   <div className="w-px h-6 bg-border my-1"></div>
                   <MapPin className="h-5 w-5 text-red-500" />
                 </div>
