@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Info, Users, Briefcase, Landmark, CreditCard, Wallet, ChevronDown, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Users, Briefcase, Landmark, CreditCard, Wallet, ChevronDown, Clock, Check } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import type { MapRef, LngLatLike } from "react-map-gl";
 import { useToast } from "@/hooks/use-toast";
@@ -17,11 +17,13 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet"
 
 
 type RideCategory = "comfort" | "executive";
@@ -58,9 +60,9 @@ const defaultFareConfig: AppFareConfig = {
 };
 
 const paymentIcons: { [key in PaymentMethod]: React.ReactNode } = {
-  'Cartão': <CreditCard className="h-4 w-4" />,
-  'PIX': <Landmark className="h-4 w-4" />,
-  'Dinheiro': <Wallet className="h-4 w-4" />,
+  'Cartão': <CreditCard className="h-6 w-6" />,
+  'PIX': <Landmark className="h-6 w-6" />,
+  'Dinheiro': <Wallet className="h-6 w-6" />,
 };
 
 
@@ -68,7 +70,6 @@ export function ConfirmRideUI() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const mapRef = useRef<MapRef>(null);
 
   const [pickupCoords, setPickupCoords] = useState<LngLatLike | null>(null);
@@ -86,6 +87,8 @@ export function ConfirmRideUI() {
   const [fareConfig, setFareConfig] = useState<AppFareConfig>(defaultFareConfig);
   const [isRequesting, setIsRequesting] = useState(false);
   const [isLoadingRoute, setIsLoadingRoute] = useState(true);
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+
 
   useEffect(() => {
     // Get stored fare config from admin
@@ -110,7 +113,7 @@ export function ConfirmRideUI() {
       return;
     }
     setDestinationCoords(destination.center);
-    setDestinationAddress(destination.text);
+    setDestinationAddress(destination.place_name.split(',')[0]);
 
     // Get user's current location for pickup
     navigator.geolocation.getCurrentPosition(
@@ -198,6 +201,11 @@ export function ConfirmRideUI() {
     }
   };
 
+  const handleSelectPayment = (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    setIsPaymentSheetOpen(false);
+  }
+
 
   return (
     <div className="h-screen w-screen relative flex flex-col bg-background">
@@ -210,7 +218,7 @@ export function ConfirmRideUI() {
              <p>→</p>
              <div className="flex-1 text-center font-semibold truncate">{destinationAddress}</div>
              {duration > 0 ? (
-                <div className="bg-primary/20 text-primary-foreground font-semibold text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                <div className="bg-primary/20 text-primary font-semibold text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <Clock className="h-3 w-3"/>
                     {Math.ceil(duration)} min
                 </div>
@@ -273,23 +281,35 @@ export function ConfirmRideUI() {
           </div>
          
          <div className="flex items-center gap-4">
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+             <Sheet open={isPaymentSheetOpen} onOpenChange={setIsPaymentSheetOpen}>
+                <SheetTrigger asChild>
                     <Button variant="ghost" className="p-0 h-auto gap-2">
-                        {paymentIcons[paymentMethod]}
+                        {React.cloneElement(paymentIcons[paymentMethod] as React.ReactElement, { className: 'h-4 w-4' })}
                         <span className="font-semibold">{paymentMethod}</span>
                         <ChevronDown className="h-4 w-4 opacity-50"/>
                     </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                    {(Object.keys(paymentIcons) as PaymentMethod[]).map((method) => (
-                        <DropdownMenuItem key={method} onClick={() => setPaymentMethod(method)}>
-                             {paymentIcons[method]}
-                             <span>{method}</span>
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-             </DropdownMenu>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="rounded-t-2xl">
+                    <SheetHeader>
+                        <SheetTitle className="text-center">Forma de Pagamento</SheetTitle>
+                    </SheetHeader>
+                    <div className="py-4 space-y-3">
+                        {(Object.keys(paymentIcons) as PaymentMethod[]).map((method) => (
+                             <button
+                                key={method}
+                                onClick={() => handleSelectPayment(method)}
+                                className="w-full p-4 rounded-lg border-2 flex items-center justify-between gap-4 transition-all cursor-pointer hover:bg-muted"
+                            >
+                                <div className="flex items-center gap-4">
+                                    {paymentIcons[method]}
+                                    <span className="font-semibold text-lg">{method}</span>
+                                </div>
+                                {paymentMethod === method && <Check className="h-5 w-5 text-primary" />}
+                            </button>
+                        ))}
+                    </div>
+                </SheetContent>
+             </Sheet>
 
             <Button 
                 className="w-full h-12 text-lg font-bold bg-secondary hover:bg-secondary/90" 
