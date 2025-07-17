@@ -230,7 +230,7 @@ function AcceptRidePage() {
           <div className="p-4 bg-gray-800 text-white flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <Avatar className="h-14 w-14 border-2 border-gray-600">
-                    <AvatarImage src={rideData.passenger.avatarUrl || undefined} data-ai-hint="person avatar" />
+                    <AvatarImage src={rideData.passenger.avatarUrl || 'https://placehold.co/100x100.png'} data-ai-hint="person avatar" />
                     <AvatarFallback>{rideData.passenger.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
