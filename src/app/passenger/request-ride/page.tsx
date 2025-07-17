@@ -184,9 +184,20 @@ function RequestRidePage() {
   };
 
   const handleSelectSuggestion = (suggestion: Suggestion | string) => {
-      const address = typeof suggestion === 'string' ? suggestion : suggestion.place_name;
-      setItem(PRESELECTED_DESTINATION_KEY, address);
-      router.push('/passenger/confirm-ride');
+      const isString = typeof suggestion === 'string';
+      const address = isString ? suggestion : suggestion.place_name;
+      
+      if (isString) {
+          geocodeAddress(address).then(geoSuggestion => {
+              if (geoSuggestion) {
+                  setItem(PRESELECTED_DESTINATION_KEY, geoSuggestion);
+                  router.push('/passenger/confirm-ride');
+              }
+          })
+      } else {
+         setItem(PRESELECTED_DESTINATION_KEY, suggestion);
+         router.push('/passenger/confirm-ride');
+      }
   };
   
   const handleOpenTripPlanner = () => {
