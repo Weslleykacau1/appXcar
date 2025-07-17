@@ -30,7 +30,7 @@ type RideCategory = "comfort" | "executive";
 type PaymentMethod = "Cartão" | "PIX" | "Dinheiro";
 
 
-const PRESELECTED_DESTINATION_KEY = 'preselected_destination';
+const PRESELECTED_TRIP_KEY = 'preselected_trip';
 const ADMIN_FARES_CONFIG_KEY = 'admin_fares_config';
 const PASSENGER_CURRENT_RIDE = 'passenger_current_ride';
 const SURGE_MULTIPLIER = 1.3;
@@ -40,6 +40,12 @@ interface Suggestion {
   text: string;
   place_name: string;
   center: [number, number];
+}
+
+interface TripData {
+    pickup: Suggestion | null;
+    stops: Suggestion[];
+    destination: Suggestion;
 }
 
 interface FareConfig {
@@ -73,11 +79,8 @@ export function ConfirmRideUI() {
   const mapRef = useRef<MapRef>(null);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+  const [tripData, setTripData] = useState<TripData | null>(null);
   const [pickupCoords, setPickupCoords] = useState<LngLatLike | null>(null);
-  const [destinationCoords, setDestinationCoords] = useState<LngLatLike | null>(null);
-  const [destinationAddress, setDestinationAddress] = useState<string>('');
-  const [pickupAddress, setPickupAddress] = useState<string>('Localidade atual');
-
 
   const [route, setRoute] = useState<any>(null);
   const [distance, setDistance] = useState(0); // in km
@@ -106,24 +109,26 @@ export function ConfirmRideUI() {
         setFareConfig(numericFares);
     }
     
-    // Get destination from storage
-    const destination = getItem<Suggestion>(PRESELECTED_DESTINATION_KEY);
-    if (!destination) {
+    const trip = getItem<TripData>(PRESELECTED_TRIP_KEY);
+    if (!trip || !trip.destination) {
       toast({ variant: 'destructive', title: 'Destino não encontrado', description: 'Por favor, selecione um destino novamente.' });
       router.push('/passenger/request-ride');
       return;
     }
-    setDestinationCoords(destination.center);
-    setDestinationAddress(destination.place_name.split(',')[0]);
+    setTripData(trip);
 
-    // Get user's current location for pickup
-    navigator.geolocation.getCurrentPosition(
-      (position) => setPickupCoords([position.coords.longitude, position.coords.latitude]),
-      () => {
-        toast({ variant: 'destructive', title: 'Localização necessária', description: 'Por favor, habilite a localização para solicitar uma corrida.' });
-        router.push('/passenger/request-ride');
-      }
-    );
+    if (trip.pickup) {
+        setPickupCoords(trip.pickup.center);
+    } else {
+        // Get user's current location for pickup
+        navigator.geolocation.getCurrentPosition(
+          (position) => setPickupCoords([position.coords.longitude, position.coords.latitude]),
+          () => {
+            toast({ variant: 'destructive', title: 'Localização necessária', description: 'Por favor, habilite a localização para solicitar uma corrida.' });
+            router.push('/passenger/request-ride');
+          }
+        );
+    }
   }, [router, toast]);
 
   const calculateFare = (category: RideCategory) => {
@@ -136,13 +141,23 @@ export function ConfirmRideUI() {
   };
 
   const getRoute = useCallback(async () => {
-    if (!pickupCoords || !destinationCoords || !mapboxToken) return;
+    if (!pickupCoords || !tripData || !mapboxToken) return;
 
     setIsLoadingRoute(true);
+    
+    const allWaypoints = [
+        pickupCoords,
+        ...tripData.stops.map(s => s.center),
+        tripData.destination.center
+    ];
+
+    const coordinatesString = allWaypoints.map(c => c.join(',')).join(';');
+
     const response = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${destinationCoords[0]},${destinationCoords[1]}?steps=true&geometries=geojson&access_token=${mapboxToken}`
+      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesString}?steps=true&geometries=geojson&access_token=${mapboxToken}`
     );
     const data = await response.json();
+
     if (data.routes && data.routes[0]) {
       const routeData = data.routes[0];
       setRoute(routeData.geometry.coordinates);
@@ -150,20 +165,20 @@ export function ConfirmRideUI() {
       setDuration(routeData.duration / 60); // seconds to minutes
       
       const bounds: [LngLatLike, LngLatLike] = [
-          pickupCoords,
-          destinationCoords
+          allWaypoints[0],
+          allWaypoints[allWaypoints.length - 1]
       ];
       mapRef.current?.fitBounds(bounds, { padding: 80, duration: 1000 });
     }
     setIsLoadingRoute(false);
-  }, [pickupCoords, destinationCoords, mapboxToken]);
+  }, [pickupCoords, tripData, mapboxToken]);
 
   useEffect(() => {
     getRoute();
   }, [getRoute]);
 
   const handleRequestRide = async () => {
-    if (!user || !pickupCoords || !destinationCoords || !route) return;
+    if (!user || !pickupCoords || !tripData || !route) return;
 
     setIsRequesting(true);
     try {
@@ -172,10 +187,12 @@ export function ConfirmRideUI() {
             passengerId: user.id,
             passengerName: user.name,
             passengerPhotoUrl: user.photoUrl || '',
-            pickupAddress: "Minha Localização Atual", // This should be geocoded in a real app
-            destinationAddress: destinationAddress,
+            pickupAddress: tripData.pickup?.place_name || "Localização Atual",
+            destinationAddress: tripData.destination.place_name,
+            stops: tripData.stops.map(s => s.place_name),
             pickupCoords: { lat: pickupCoords[1], lng: pickupCoords[0] },
-            destinationCoords: { lat: destinationCoords[1], lng: destinationCoords[0] },
+            destinationCoords: { lat: tripData.destination.center[1], lng: tripData.destination.center[0] },
+            stopsCoords: tripData.stops.map(s => ({ lat: s.center[1], lng: s.center[0] })),
             fare: fare,
             category: selectedCategory,
             status: 'pending',
@@ -215,9 +232,9 @@ export function ConfirmRideUI() {
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-             <div className="flex-1 text-center font-semibold truncate">{pickupAddress}</div>
+             <div className="flex-1 text-center font-semibold truncate">{tripData?.pickup?.text || 'Partida'}</div>
              <p>→</p>
-             <div className="flex-1 text-center font-semibold truncate">{destinationAddress}</div>
+             <div className="flex-1 text-center font-semibold truncate">{tripData?.destination?.text || 'Destino'}</div>
              {duration > 0 ? (
                 <div className="bg-primary/20 text-primary font-semibold text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <Clock className="h-3 w-3"/>
@@ -228,7 +245,7 @@ export function ConfirmRideUI() {
       </header>
       
       <div className="flex-1">
-        <Map mapRef={mapRef} pickup={pickupCoords as LngLatLike} destination={destinationCoords as LngLatLike} route={route} />
+        <Map mapRef={mapRef} pickup={pickupCoords as LngLatLike} destination={tripData?.destination.center as LngLatLike} route={route} />
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl shadow-2xl p-4 space-y-4">

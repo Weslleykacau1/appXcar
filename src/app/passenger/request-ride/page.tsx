@@ -65,27 +65,7 @@ interface AppFareConfig {
 }
 
 
-const RIDE_REQUEST_KEY = 'passenger_current_ride';
-const RERIDE_REQUEST_KEY = 'reride_request';
-const ADMIN_FARES_CONFIG_KEY = 'admin_fares_config';
-const PRESELECTED_DESTINATION_KEY = 'preselected_destination';
-const SURGE_MULTIPLIER = 1.3;
-
-
-const defaultFareConfig: AppFareConfig = {
-    comfort: {
-        baseFare: 3.50,
-        costPerMinute: 0.45,
-        costPerKm: 1.50,
-        bookingFee: 2.00
-    },
-    executive: {
-        baseFare: 2.50,
-        costPerMinute: 0.30,
-        costPerKm: 1.20,
-        bookingFee: 2.00
-    }
-}
+const PRESELECTED_TRIP_KEY = 'preselected_trip';
 
 interface RecentRide {
     id: string;
@@ -100,13 +80,18 @@ function RequestRidePage() {
   const router = useRouter();
   
   const mapRef = useRef<MapRef>(null);
-  
+  const [activeInput, setActiveInput] = useState<'pickup' | 'destination' | 'stop1' | 'stop2' | null>(null);
+
+  const [pickupInput, setPickupInput] = useState("Localidade atual");
   const [destinationInput, setDestinationInput] = useState("");
-  const [destinationSuggestions, setDestinationSuggestions] = useState<Suggestion[]>([]);
+  const [stopInputs, setStopInputs] = useState<string[]>([]);
   
+  const [pickupSuggestion, setPickupSuggestion] = useState<Suggestion | null>(null);
+  const [destinationSuggestion, setDestinationSuggestion] = useState<Suggestion | null>(null);
+  const [stopSuggestions, setStopSuggestions] = useState<(Suggestion | null)[]>([]);
+
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isPlanningTrip, setIsPlanningTrip] = useState(false);
-
-
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
 
   const { toast } = useToast();
@@ -174,24 +159,56 @@ function RequestRidePage() {
 
   const fetchSuggestions = async (query: string) => {
     if (query.length < 3 || !mapboxToken) {
-      setDestinationSuggestions([]);
+      setSuggestions([]);
       return;
     }
     const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&autocomplete=true&country=BR&language=pt&proximity=-38.5267,-3.7327`);
     const data = await response.json();
-    setDestinationSuggestions(data.features);
+    setSuggestions(data.features);
   };
   
-  const debouncedFetchDestinationSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), [mapboxToken]);
+  const debouncedFetchSuggestions = useCallback(debounce((query: string) => fetchSuggestions(query), 300), [mapboxToken]);
   
-  const handleDestinationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'pickup' | 'destination' | 'stop', index?: number) => {
     const value = e.target.value;
-    setDestinationInput(value);
-    debouncedFetchDestinationSuggestions(value);
+     if (type === 'pickup') {
+        setPickupInput(value);
+        setActiveInput('pickup');
+    } else if (type === 'destination') {
+        setDestinationInput(value);
+        setActiveInput('destination');
+    } else if (type === 'stop' && index !== undefined) {
+        const newStops = [...stopInputs];
+        newStops[index] = value;
+        setStopInputs(newStops);
+        setActiveInput(`stop${index+1}` as 'stop1' | 'stop2');
+    }
+    debouncedFetchSuggestions(value);
   };
 
-  const handleSelectSuggestion = async (suggestion: Suggestion | string | null) => {
-      if (!suggestion) {
+  const handleSelectSuggestion = (suggestion: Suggestion) => {
+      if (activeInput === 'pickup') {
+        setPickupSuggestion(suggestion);
+        setPickupInput(suggestion.place_name);
+    } else if (activeInput === 'destination') {
+        setDestinationSuggestion(suggestion);
+        setDestinationInput(suggestion.place_name);
+    } else if (activeInput?.startsWith('stop')) {
+        const index = parseInt(activeInput.replace('stop', ''), 10) - 1;
+        const newStopSuggestions = [...stopSuggestions];
+        newStopSuggestions[index] = suggestion;
+        setStopSuggestions(newStopSuggestions);
+
+        const newStopInputs = [...stopInputs];
+        newStopInputs[index] = suggestion.place_name;
+        setStopInputs(newStopInputs);
+    }
+    setSuggestions([]);
+    setActiveInput(null);
+  };
+
+  const handleSelectShortcut = async (address: string | null, type: 'pickup' | 'destination') => {
+      if (!address) {
         toast({
             variant: "destructive",
             title: "Endereço não definido",
@@ -199,28 +216,65 @@ function RequestRidePage() {
         });
         return;
       }
-
-      let geoSuggestion: Suggestion | null;
-      if (typeof suggestion === 'string') {
-          geoSuggestion = await geocodeAddress(suggestion);
-      } else {
-          geoSuggestion = suggestion;
-      }
-      
-      if (geoSuggestion) {
-          setItem(PRESELECTED_DESTINATION_KEY, geoSuggestion);
-          router.push('/passenger/confirm-ride');
+      const suggestion = await geocodeAddress(address);
+      if (suggestion) {
+        if(type === 'destination') {
+            setDestinationSuggestion(suggestion);
+            setDestinationInput(suggestion.place_name);
+        } else {
+            setPickupSuggestion(suggestion);
+            setPickupInput(suggestion.place_name);
+        }
       } else {
           toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
       }
-  };
+  }
   
   const handleOpenTripPlanner = () => {
-    setIsPlanningTrip(true);
+    // Reset state for new planning session
+    setPickupInput("Localidade atual");
     setDestinationInput("");
-    setDestinationSuggestions([]);
+    setStopInputs([]);
+    setPickupSuggestion(null);
+    setDestinationSuggestion(null);
+    setStopSuggestions([]);
+    setSuggestions([]);
+    setActiveInput(null);
+    setIsPlanningTrip(true);
   }
 
+  const handleConfirmTrip = () => {
+    if (!destinationSuggestion) {
+        toast({ variant: 'destructive', title: 'Destino Obrigatório', description: 'Por favor, selecione um destino válido.' });
+        return;
+    }
+
+    const tripData = {
+        pickup: pickupSuggestion, // Can be null for "Current Location"
+        stops: stopSuggestions.filter(s => s !== null) as Suggestion[],
+        destination: destinationSuggestion
+    }
+
+    setItem(PRESELECTED_TRIP_KEY, tripData);
+    router.push('/passenger/confirm-ride');
+  }
+  
+  const handleAddStop = () => {
+    if (stopInputs.length < 2) {
+      setStopInputs([...stopInputs, ""]);
+      setStopSuggestions([...stopSuggestions, null]);
+    }
+  };
+
+  const handleRemoveStop = (index: number) => {
+    const newStops = [...stopInputs];
+    newStops.splice(index, 1);
+    setStopInputs(newStops);
+
+    const newStopSuggestions = [...stopSuggestions];
+    newStopSuggestions.splice(index, 1);
+    setStopSuggestions(newStopSuggestions);
+  };
 
   if (!user) return null;
 
@@ -235,24 +289,52 @@ function RequestRidePage() {
                     <X className="h-6 w-6" />
                 </Button>
                 <h1 className="text-xl font-bold mx-auto">Viagem</h1>
-                <div className="w-8"></div>
+                 <Button onClick={handleConfirmTrip} disabled={!destinationInput}>Confirmar</Button>
             </header>
             <main className="flex-1 px-4 space-y-4">
                 <Card className="bg-card">
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="p-4 space-y-2">
                         <div className="flex items-start gap-4">
                             <div className="flex flex-col items-center mt-1">
                                <div className="w-3 h-3 rounded-full border-2 border-primary"></div>
-                               <div className="w-px h-10 bg-border my-1"></div>
+                               <div className="w-px h-10 bg-border my-1 flex-grow"></div>
+                               {stopInputs.map((_, index) => (
+                                    <React.Fragment key={index}>
+                                        <div className="w-3 h-3 rounded-full border-2 border-muted-foreground"></div>
+                                        <div className="w-px h-10 bg-border my-1 flex-grow"></div>
+                                    </React.Fragment>
+                                ))}
                                <div className="w-3 h-3 rounded-full border-2 border-destructive"></div>
                             </div>
                             <div className="flex-1 space-y-2">
                                 <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Início</Label>
-                                    <p className="font-semibold">Localidade atual</p>
+                                    <Input
+                                        placeholder="Local de Partida"
+                                        value={pickupInput}
+                                        onChange={(e) => handleInputChange(e, 'pickup')}
+                                        onFocus={() => setActiveInput('pickup')}
+                                        className="border-none p-0 h-auto font-semibold focus-visible:ring-0"
+                                    />
                                 </div>
                                 <Separator/>
-                                 <div className="relative space-y-1">
+                                {stopInputs.map((stop, index) => (
+                                    <div key={index} className="space-y-1 relative group">
+                                         <Label className="text-xs text-muted-foreground">Parada</Label>
+                                         <Input
+                                            placeholder="Adicionar parada"
+                                            value={stop}
+                                            onChange={(e) => handleInputChange(e, 'stop', index)}
+                                            onFocus={() => setActiveInput(`stop${index+1}` as 'stop1' | 'stop2')}
+                                            className="border-none p-0 h-auto font-semibold focus-visible:ring-0 pr-6"
+                                        />
+                                        <Button variant="ghost" size="icon" className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleRemoveStop(index)}>
+                                            <X className="h-4 w-4"/>
+                                        </Button>
+                                        <Separator/>
+                                    </div>
+                                ))}
+                                <div className="relative space-y-1">
                                     <Label className="text-xs text-muted-foreground">Destino</Label>
                                     <Input
                                         id="destination-planner"
@@ -260,37 +342,24 @@ function RequestRidePage() {
                                         className="border-none p-0 h-auto font-semibold focus-visible:ring-0"
                                         required
                                         value={destinationInput}
-                                        onChange={handleDestinationChange}
+                                        onChange={(e) => handleInputChange(e, 'destination')}
+                                        onFocus={() => setActiveInput('destination')}
                                         autoComplete="off"
-                                        autoFocus
                                     />
                                 </div>
                             </div>
                         </div>
-                         <Button variant="ghost" className="w-full justify-start p-0 h-auto text-primary gap-2">
-                            <Plus className="h-5 w-5"/> Adicionar Parada
-                        </Button>
+                        {stopInputs.length < 2 && (
+                             <Button variant="ghost" className="w-full justify-start p-0 h-auto text-primary gap-2" onClick={handleAddStop}>
+                                <Plus className="h-5 w-5"/> Adicionar Parada
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
                 
-                 {destinationSuggestions.length === 0 ? (
-                    <>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(homeAddress)}>
-                            <div className="p-3 bg-muted rounded-full">
-                                <Home className="h-5 w-5 text-muted-foreground"/>
-                            </div>
-                            <p className="font-semibold">Casa</p>
-                        </button>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(workAddress)}>
-                            <div className="p-3 bg-muted rounded-full">
-                                <Briefcase className="h-5 w-5 text-muted-foreground"/>
-                            </div>
-                            <p className="font-semibold">Trabalho</p>
-                        </button>
-                    </>
-                 ) : (
+                 {suggestions.length > 0 ? (
                     <div className="space-y-1">
-                        {destinationSuggestions.map((suggestion) => (
+                        {suggestions.map((suggestion) => (
                              <button key={suggestion.id} className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(suggestion)}>
                                <div className="p-3 bg-muted rounded-full">
                                  <MapPin className="h-5 w-5 text-muted-foreground"/>
@@ -302,6 +371,21 @@ function RequestRidePage() {
                              </button>
                         ))}
                     </div>
+                 ) : (
+                    <>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(homeAddress, activeInput === 'pickup' ? 'pickup' : 'destination')}>
+                            <div className="p-3 bg-muted rounded-full">
+                                <Home className="h-5 w-5 text-muted-foreground"/>
+                            </div>
+                            <p className="font-semibold">Casa</p>
+                        </button>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(workAddress, activeInput === 'pickup' ? 'pickup' : 'destination')}>
+                            <div className="p-3 bg-muted rounded-full">
+                                <Briefcase className="h-5 w-5 text-muted-foreground"/>
+                            </div>
+                            <p className="font-semibold">Trabalho</p>
+                        </button>
+                    </>
                  )}
 
             </main>
@@ -326,11 +410,11 @@ function RequestRidePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectSuggestion(homeAddress)}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(homeAddress, 'destination')}>
                     <Home className="mr-3"/>
                     <span className="font-semibold">Casa</span>
                 </Button>
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectSuggestion(workAddress)}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectShortcut(workAddress, 'destination')}>
                     <Briefcase className="mr-3"/>
                     <span className="font-semibold">Trabalho</span>
                 </Button>
@@ -342,7 +426,7 @@ function RequestRidePage() {
                  <h2 className="text-lg font-semibold mb-3">Viagens recentes</h2>
                  <div className="space-y-2">
                     {recentRides.map(ride => (
-                        <button key={ride.id} className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(ride.destinationAddress)}>
+                        <button key={ride.id} className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={() => handleSelectShortcut(ride.destinationAddress, 'destination')}>
                            <div className="p-3 bg-muted rounded-full">
                              <History className="h-5 w-5 text-muted-foreground"/>
                            </div>
