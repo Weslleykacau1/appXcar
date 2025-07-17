@@ -12,9 +12,11 @@ import { Separator } from '@/components/ui/separator';
 import { MapPin, User, Car, Clock, DollarSign, Loader2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { setItem } from '@/lib/storage';
+import { getItem, setItem } from '@/lib/storage';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
+
+type PaymentMethod = "Cartão" | "PIX" | "Dinheiro";
 
 interface RideRequest {
     id: string;
@@ -29,7 +31,7 @@ interface RideRequest {
     status: string;
     category: string;
     createdAt: Date;
-    paymentMethod: string;
+    paymentMethod: PaymentMethod;
     pickupCoords: { lat: number; lng: number };
     destinationCoords: { lat: number; lng: number };
     route?: {
@@ -46,6 +48,8 @@ interface AvailableRidesDrawerProps {
 
 const RIDE_REQUEST_KEY = 'pending_ride_request';
 const CURRENT_RIDE_KEY = 'current_ride_data';
+const PAYMENT_PREFERENCES_KEY = 'driver_payment_preferences';
+
 
 export function AvailableRidesDrawer({ open, onOpenChange }: AvailableRidesDrawerProps) {
     const { user: driver } = useAuth();
@@ -60,16 +64,30 @@ export function AvailableRidesDrawer({ open, onOpenChange }: AvailableRidesDrawe
 
         setIsLoading(true);
         const q = query(collection(db, "rides"), where("status", "==", "pending"));
+        
+        const paymentPreferences = getItem<Record<PaymentMethod, boolean>>(PAYMENT_PREFERENCES_KEY) || {
+            'Cartão': true,
+            'PIX': true,
+            'Dinheiro': true,
+        };
+        const acceptedMethods = Object.entries(paymentPreferences)
+            .filter(([, accepted]) => accepted)
+            .map(([method]) => method);
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const rideRequests: RideRequest[] = [];
             querySnapshot.forEach((doc: DocumentData) => {
                 const data = doc.data();
-                rideRequests.push({
+                const ride = {
                     id: doc.id,
                     ...data,
                     createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
-                } as RideRequest);
+                } as RideRequest;
+
+                // Filter based on payment method
+                if (acceptedMethods.includes(ride.paymentMethod)) {
+                    rideRequests.push(ride);
+                }
             });
             setRides(rideRequests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
             setIsLoading(false);
@@ -207,3 +225,5 @@ export function AvailableRidesDrawer({ open, onOpenChange }: AvailableRidesDrawe
         </Sheet>
     );
 }
+
+    
