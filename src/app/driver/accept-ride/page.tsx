@@ -139,10 +139,16 @@ function AcceptRidePage() {
     }
 
     const showNotification = () => {
-        new Notification('Nova Solicitação de Corrida', {
-            body: 'Você tem uma nova solicitação de viagem.',
-            icon: '/favicon.ico'
-        });
+        if ('Notification' in window && Notification.permission === 'granted') {
+             new Notification('Nova Solicitação de Corrida', {
+                body: 'Você tem uma nova solicitação de viagem.',
+                icon: '/favicon.ico'
+            });
+        }
+    }
+    
+    if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
     }
 
     // Browser Notification API
