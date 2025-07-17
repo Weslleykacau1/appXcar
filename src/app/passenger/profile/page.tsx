@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { withAuth } from "@/components/with-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, User, HelpCircle, Activity, Wallet, Shield, CreditCard, Newspaper, Download, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, User, HelpCircle, Activity, Wallet, Shield, CreditCard, Newspaper, Download, ChevronRight, X, Plus } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useAuth, User as AuthUser } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -41,11 +41,13 @@ function ProfilePageContent() {
 
     return (
         <div className="flex flex-col min-h-screen bg-muted/40 text-foreground">
-            <header className="sticky top-0 z-10 flex items-center h-16 px-4 bg-background">
+            <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-background">
                 <Button variant="ghost" size="icon" onClick={() => router.push('/passenger/request-ride')}>
                     <X className="h-5 w-5" />
                 </Button>
-                <div className="w-8"></div>
+                <Button variant="ghost" size="icon">
+                    <Plus className="h-5 w-5" />
+                </Button>
             </header>
             
             <main className="flex-1 overflow-y-auto">
@@ -148,5 +150,3 @@ export default function ProfilePage() {
         </Suspense>
     );
 }
-
-    
