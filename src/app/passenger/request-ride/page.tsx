@@ -57,6 +57,7 @@ interface FareConfig {
     baseFare: number;
     costPerMinute: number;
     costPerKm: number;
+
     bookingFee: number;
 }
 
@@ -283,13 +284,13 @@ function RequestRidePage() {
 
   if (isLoading || !user) {
     return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#9B2FFF] via-[#B028A6] to-[#1D1B2E]">
-             <div className="p-6 text-white space-y-6">
-                <Skeleton className="h-9 w-48 bg-white/20 rounded-lg"/>
+        <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#FAD7FF] via-[#E5D0FF] to-background dark:from-[#9B2FFF] dark:via-[#B028A6] dark:to-[#1D1B2E]">
+             <div className="p-6 text-foreground dark:text-white space-y-6">
+                <Skeleton className="h-9 w-48 bg-black/10 dark:bg-white/20 rounded-lg"/>
                  <div className="relative flex items-center">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-200" />
-                     <div className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#2a2733] border-none">
-                        <Skeleton className="h-5 w-40 bg-white/20 rounded-lg" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground dark:text-pink-200" />
+                     <div className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#f2eefc] dark:bg-[#2a2733] border-none">
+                        <Skeleton className="h-5 w-40 bg-black/10 dark:bg-white/20 rounded-lg" />
                      </div>
                  </div>
              </div>
@@ -432,22 +433,22 @@ function RequestRidePage() {
 
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-gradient-to-b from-[#9B2FFF] via-[#B028A6] to-[#1D1B2E]">
-        <div className="p-6 text-white space-y-6">
+    <div className="flex flex-col min-h-screen w-full bg-gradient-to-b from-[#FAD7FF] via-[#E5D0FF] to-background dark:from-[#9B2FFF] dark:via-[#B028A6] dark:to-[#1D1B2E]">
+        <div className="p-6 text-foreground dark:text-white space-y-6">
             <h1 className="text-3xl font-bold">Oi, {firstName}</h1>
             
             <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/80" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground dark:text-white/80" />
                 <div
                     id="destination"
-                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#2a2733] border-none"
+                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#f2eefc] dark:bg-[#2a2733] border border-transparent dark:border-none"
                 >
-                    <span className="text-white/80">Para onde você vai?</span>
+                    <span className="text-muted-foreground dark:text-white/80">Para onde você vai?</span>
                 </div>
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl">
-            <Card className="bg-card shadow-lg">
+             <Card className="bg-card shadow-lg">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
