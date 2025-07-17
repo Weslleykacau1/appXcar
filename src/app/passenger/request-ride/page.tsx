@@ -469,6 +469,12 @@ function RequestRidePage() {
                              </div>
                              <span className="font-semibold">Definir no mapa</span>
                         </button>
+                        <button className="flex items-center gap-4 w-full p-2 text-left hover:bg-muted rounded-lg -ml-2">
+                             <div className="p-3 bg-muted rounded-full">
+                                <Star className="h-5 w-5 text-yellow-500" />
+                             </div>
+                             <span className="font-semibold">Adicionar atalho</span>
+                        </button>
                     </div>
                  )}
 
@@ -494,7 +500,7 @@ function RequestRidePage() {
             </div>
         </div>
         <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-             <Card className="bg-card shadow-lg -mt-16">
+             <Card className="bg-card shadow-lg">
                 <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-primary/20 p-2 rounded-full">
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
