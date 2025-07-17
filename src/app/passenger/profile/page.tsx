@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { withAuth } from "@/components/with-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, User, Mail, Phone, Edit, FileText, Moon, Bell, MapPin, Globe, Share2, EyeOff, Save, Car, Upload, CheckSquare, Camera, Library, LogOut, Settings, ChevronRight, Plus, Shield, History, ArrowLeft, X, Home, Briefcase, Trash2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
@@ -22,9 +22,9 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { useLanguage } from "@/context/language-context";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { BottomNavBar } from "@/components/bottom-nav-bar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription as SheetDescriptionComponent, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -439,6 +439,22 @@ function PassengerProfilePage() {
 
                 <Card className="mt-6">
                     <CardHeader>
+                        <CardTitle>{t('profile.settings.privacy_title')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <Share2 className="h-6 w-6 text-muted-foreground mt-1" />
+                            <div className="flex-1">
+                                <p className="font-medium">{t('profile.settings.privacy_share_data')}</p>
+                                <p className="text-sm text-muted-foreground">{t('profile.settings.privacy_share_data_desc')}</p>
+                            </div>
+                            <Switch defaultChecked />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="mt-6">
+                    <CardHeader>
                         <CardTitle>{t('profile.history.title')}</CardTitle>
                         <CardDescription>{t('profile.history.description')}</CardDescription>
                     </CardHeader>
@@ -465,7 +481,7 @@ function PassengerProfilePage() {
                 <SheetContent className="w-full sm:max-w-md p-0">
                     <SheetHeader className="p-6 border-b">
                         <SheetTitle>{t('profile.history.title')}</SheetTitle>
-                        <SheetDescription>Exibindo apenas o histórico de hoje. Para corridas anteriores, entre em contato com o suporte.</SheetDescription>
+                        <SheetDescriptionComponent>Exibindo apenas o histórico de hoje. Para corridas anteriores, entre em contato com o suporte.</SheetDescriptionComponent>
                     </SheetHeader>
                     <ScrollArea className="h-[calc(100%-80px)]">
                         {isHistoryLoading ? (
