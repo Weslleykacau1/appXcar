@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Home, History, User } from "lucide-react";
+import { Home, History, User, Car } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface BottomNavBarProps {
@@ -15,9 +15,9 @@ export function BottomNavBar({ role }: BottomNavBarProps) {
     const searchParams = useSearchParams();
 
     const menuItems = role === 'passenger' ? [
-        { href: '/passenger/request-ride', label: 'Início', icon: Home, id: 'home' },
+        { href: '/passenger/request-ride', label: 'Corridas', icon: Car, id: 'home' },
         { href: '/passenger/profile?showHistory=true', label: 'Viagens', icon: History, id: 'history' },
-        { href: '/passenger/profile', label: 'Conta', icon: User, id: 'account' },
+        { href: '/passenger/profile', label: 'Você', icon: User, id: 'account' },
     ] : [
         { href: '/driver', label: 'Início', icon: Home, id: 'home' },
         { href: '/driver/statistics', label: 'Viagens', icon: History, id: 'history' },
