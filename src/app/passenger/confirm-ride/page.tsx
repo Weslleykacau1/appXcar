@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Suspense } from 'react';
 import { ConfirmRideUI } from './confirm-ride-ui';
 import { withAuth } from '@/components/with-auth';
