@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { withAuth } from "@/components/with-auth";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
@@ -221,6 +221,7 @@ function RequestRidePage() {
         if(type === 'destination') {
             setDestinationSuggestion(suggestion);
             setDestinationInput(suggestion.place_name);
+            handleOpenTripPlanner();
         } else {
             setPickupSuggestion(suggestion);
             setPickupInput(suggestion.place_name);
@@ -233,10 +234,11 @@ function RequestRidePage() {
   const handleOpenTripPlanner = () => {
     // Reset state for new planning session
     setPickupInput("Localidade atual");
-    setDestinationInput("");
+    // Keep destination if already set
+    // setDestinationInput("");
     setStopInputs([]);
     setPickupSuggestion(null);
-    setDestinationSuggestion(null);
+    // setDestinationSuggestion(null);
     setStopSuggestions([]);
     setSuggestions([]);
     setActiveInput(null);
@@ -459,3 +461,6 @@ function RequestRidePage() {
 }
 
 export default withAuth(RequestRidePage, ["passenger"]);
+
+
+    
