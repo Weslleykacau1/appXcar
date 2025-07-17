@@ -282,19 +282,34 @@ function RequestRidePage() {
 
   if (isLoading || !user) {
     return (
-        <div className="flex flex-col min-h-screen bg-background text-foreground p-4 space-y-6 pb-24">
-             <div className="bg-gradient-to-br from-primary to-secondary p-4 -m-4 pb-8 rounded-b-3xl">
-                <h1 className="text-3xl font-bold text-primary-foreground"><Skeleton className="h-8 w-48 bg-white/20"/></h1>
-                 <Skeleton className="mt-6 h-14 w-full rounded-full bg-white/20" />
-             </div>
-             <Skeleton className="h-24 w-full rounded-lg" />
-             <Separator/>
-             <h2 className="text-lg font-semibold"><Skeleton className="h-6 w-32"/></h2>
-             <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-             </div>
+        <div className="flex flex-col min-h-screen bg-background text-foreground">
+             <header className="bg-gradient-to-br from-primary to-secondary p-4 pb-8 rounded-b-3xl text-primary-foreground space-y-6">
+                <Skeleton className="h-9 w-48 bg-white/20 rounded-lg"/>
+                 <div className="relative flex items-center">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-200" />
+                     <div id="destination" className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-black/20 border-none">
+                        <Skeleton className="h-5 w-40 bg-white/20 rounded-lg" />
+                     </div>
+                 </div>
+             </header>
+             <main className="flex-1 p-4 space-y-6 pb-24 -mt-6">
+                 <Card className="bg-card shadow-lg">
+                    <CardContent className="p-4 flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-full bg-muted" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-64 bg-muted" />
+                            <Skeleton className="h-4 w-48 bg-muted" />
+                        </div>
+                    </CardContent>
+                 </Card>
+                 <Separator/>
+                 <Skeleton className="h-6 w-32 rounded-lg bg-muted" />
+                 <div className="space-y-2">
+                    <Skeleton className="h-16 w-full rounded-lg bg-muted" />
+                    <Skeleton className="h-16 w-full rounded-lg bg-muted" />
+                 </div>
+             </main>
+             <BottomNavBar role="passenger" />
         </div>
     );
   }
