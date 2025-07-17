@@ -91,6 +91,7 @@ interface RecentRide {
     id: string;
     destinationAddress: string;
     createdAt: Date;
+    status: 'completed' | 'cancelled';
 }
 
 
@@ -137,7 +138,7 @@ function RequestRidePage() {
         const ridesRef = collection(db, "rides");
         const q = query(
             ridesRef, 
-            where("passengerId", "==", user.id)
+            where("passengerId", "==", user.id),
         );
         const querySnapshot = await getDocs(q);
         const allRides = querySnapshot.docs.map(doc => {
@@ -187,18 +188,29 @@ function RequestRidePage() {
     debouncedFetchDestinationSuggestions(value);
   };
 
-  const handleSelectSuggestion = (suggestion: Suggestion | string) => {
+  const handleSelectSuggestion = (suggestion: Suggestion | string | null) => {
+      if (!suggestion) {
+        toast({
+            variant: "destructive",
+            title: "Endereço não definido",
+            description: "Por favor, adicione este endereço em seu perfil primeiro.",
+        });
+        return;
+      }
+
       const isString = typeof suggestion === 'string';
       const address = isString ? suggestion : suggestion.place_name;
       
       if (isString) {
-          geocodeAddress(address).then(geoSuggestion => {
+          geocodeAddress(address).then(geoSuggestion => { 
               if (geoSuggestion) {
                   setItem(PRESELECTED_DESTINATION_KEY, geoSuggestion);
                   router.push('/passenger/confirm-ride');
+              } else {
+                  toast({ variant: "destructive", title: "Endereço não encontrado", description: "Não foi possível localizar este endereço."})
               }
           })
-      } else {
+      } else { 
          setItem(PRESELECTED_DESTINATION_KEY, suggestion);
          router.push('/passenger/confirm-ride');
       }
@@ -264,13 +276,13 @@ function RequestRidePage() {
                 
                  {destinationSuggestions.length === 0 ? (
                     <>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(homeAddress)}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Home className="h-5 w-5 text-muted-foreground"/>
                             </div>
                             <p className="font-semibold">Casa</p>
                         </button>
-                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => workAddress && handleSelectSuggestion(workAddress)}>
+                        <button className="w-full flex items-center gap-4 text-left p-3 -ml-3 rounded-lg hover:bg-muted" onClick={() => handleSelectSuggestion(workAddress)}>
                             <div className="p-3 bg-muted rounded-full">
                                 <Briefcase className="h-5 w-5 text-muted-foreground"/>
                             </div>
@@ -315,11 +327,11 @@ function RequestRidePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => homeAddress && handleSelectSuggestion(homeAddress)}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectSuggestion(homeAddress)}>
                     <Home className="mr-3"/>
                     <span className="font-semibold">Casa</span>
                 </Button>
-                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => workAddress && handleSelectSuggestion(workAddress)}>
+                 <Button variant="secondary" className="h-14 rounded-full justify-start px-5" onClick={() => handleSelectSuggestion(workAddress)}>
                     <Briefcase className="mr-3"/>
                     <span className="font-semibold">Trabalho</span>
                 </Button>
