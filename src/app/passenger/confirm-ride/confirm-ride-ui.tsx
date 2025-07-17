@@ -71,6 +71,7 @@ export function ConfirmRideUI() {
   const router = useRouter();
   const { toast } = useToast();
   const mapRef = useRef<MapRef>(null);
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const [pickupCoords, setPickupCoords] = useState<LngLatLike | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<LngLatLike | null>(null);
