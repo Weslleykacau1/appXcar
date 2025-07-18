@@ -402,11 +402,7 @@ function PassengerProfilePage() {
                 </Card>
 
                 <Card className="mt-6">
-                    <CardHeader>
-                        <CardTitle>{t('profile.address.saved_locations')}</CardTitle>
-                        <CardDescription>Adicione ou edite seus locais para viagens rápidas.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
+                    <CardContent className="p-4 space-y-1">
                        <button onClick={() => handleOpenAddressSheet('home')} className="flex items-center w-full p-3 -ml-3 text-left rounded-lg hover:bg-muted">
                            <Home className="h-5 w-5 mr-4 text-muted-foreground" />
                            <div className="flex-1">
@@ -587,6 +583,8 @@ function PassengerProfilePage() {
 }
 
 export default withAuth(PassengerProfilePage, ["passenger"]);
+
+    
 
     
 
