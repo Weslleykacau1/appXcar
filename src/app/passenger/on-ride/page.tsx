@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { removeItem, setItem } from '@/lib/storage';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 
 const RIDE_TO_RATE_DRIVER = 'ride_to_rate_driver';
 
@@ -40,6 +41,8 @@ function OnRideComponent() {
     const [rideData, setRideData] = useState<RideData | null>(null);
     const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
     const [eta, setEta] = useState(5); // Mock ETA in minutes
+
+    useWakeLock();
 
     useEffect(() => {
         if (!rideId) {

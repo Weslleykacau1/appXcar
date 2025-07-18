@@ -18,6 +18,7 @@ import { db } from "@/lib/firebase";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 
 
 interface RideData {
@@ -55,6 +56,8 @@ function OnRidePage() {
   const [ridePhase, setRidePhase] = useState<RidePhase>('to_pickup');
   const [eta, setEta] = useState(5); // Mock ETA in minutes
   const { toast } = useToast();
+
+  useWakeLock();
 
   useEffect(() => {
     const data = getItem<RideData>(CURRENT_RIDE_KEY);

@@ -11,6 +11,7 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { setItem, removeItem } from '@/lib/storage';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 
 const PASSENGER_CURRENT_RIDE = 'passenger_current_ride';
 const RIDE_TO_RATE_DRIVER = 'ride_to_rate_driver';
@@ -29,6 +30,8 @@ function FindingDriverComponent() {
     const rideId = searchParams.get('rideId');
     const { toast } = useToast();
     const [rideDetails, setRideDetails] = useState<RideDetails | null>(null);
+
+    useWakeLock();
 
     useEffect(() => {
         if (!rideId) {
@@ -129,4 +132,3 @@ export default function FindingDriverPage() {
         </Suspense>
     );
 }
-

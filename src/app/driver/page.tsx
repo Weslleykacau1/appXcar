@@ -19,6 +19,7 @@ import { BottomNavBar } from '@/components/bottom-nav-bar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 
 type PaymentMethod = "Cartão" | "PIX" | "Dinheiro";
 
@@ -58,6 +59,8 @@ function DriverDashboard() {
     'PIX': true,
     'Dinheiro': true,
   });
+
+  useWakeLock();
 
   // Load initial data
   useEffect(() => {

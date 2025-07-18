@@ -17,6 +17,7 @@ import { getItem, removeItem, setItem } from "@/lib/storage";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 
 interface RideRequest {
   id: string;
@@ -52,6 +53,8 @@ function AcceptRidePage() {
   const [timeLeft, setTimeLeft] = useState(15);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [rideData, setRideData] = useState<RideRequest | null>(null);
+
+  useWakeLock();
 
   useEffect(() => {
     const request = getItem<RideRequest>(RIDE_REQUEST_KEY);
