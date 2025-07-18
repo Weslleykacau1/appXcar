@@ -683,30 +683,6 @@ function RequestRidePage() {
                     </div>
                 </CardContent>
             </Card>
-
-            <div className="flex justify-around gap-2">
-                <button 
-                    onClick={() => handleShortcutClick('home')}
-                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
-                >
-                    <Home className="h-6 w-6 text-primary"/>
-                    <span className="text-sm font-semibold">Casa</span>
-                </button>
-                 <button 
-                    onClick={() => handleShortcutClick('work')}
-                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
-                >
-                    <Briefcase className="h-6 w-6 text-primary"/>
-                    <span className="text-sm font-semibold">Trabalho</span>
-                </button>
-                 <button 
-                    onClick={() => setIsAddingShortcut(true)}
-                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg bg-muted flex-1 hover:bg-primary/10 transition-colors"
-                >
-                    <Plus className="h-6 w-6 text-primary"/>
-                    <span className="text-sm font-semibold">Adicionar</span>
-                </button>
-            </div>
             
             <Separator />
             
