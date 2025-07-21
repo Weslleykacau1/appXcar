@@ -59,7 +59,7 @@ function DriverProfilePage() {
     const [rideHistory, setRideHistory] = useState<Ride[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
-    const [profileData, setProfileData] = useState({ name: '', email: '', phone: '', photoUrl: '', cnhUrl: '', crlvUrl: '' });
+    const [profileData, setProfileData] = useState({ name: '', email: '', phone: '', photoUrl: '', cnhUrl: '', crlvUrl: '', notificationSound: 'moderno' });
     const [vehicleData, setVehicleData] = useState({ model: '', licensePlate: '', color: '', year: '' });
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -87,6 +87,7 @@ function DriverProfilePage() {
                     photoUrl: data.photoUrl || '',
                     cnhUrl: data.cnhUrl || '',
                     crlvUrl: data.crlvUrl || '',
+                    notificationSound: data.notificationSound || 'moderno',
                 });
                 setVehicleData({
                     model: data.vehicle_model || 'Toyota Corolla',
@@ -262,6 +263,7 @@ function DriverProfilePage() {
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
+                notificationSound: profileData.notificationSound,
             });
             toast({ title: t('toast.info_saved_title'), description: t('toast.info_saved_desc') });
             setIsEditingProfile(false);
@@ -359,6 +361,12 @@ function DriverProfilePage() {
                 return null;
         }
     }
+
+    // Função para tocar o som ao selecionar
+    const playNotificationSound = (sound: string) => {
+      const audio = new Audio(`/sounds/${sound}.mp3`);
+      audio.play();
+    };
 
     return (
         <div className="flex flex-col min-h-screen bg-muted/40">
@@ -515,7 +523,16 @@ function DriverProfilePage() {
                                 <p className="font-medium">{t('profile.settings.notifications')}</p>
                                 <p className="text-sm text-muted-foreground">{t('profile.settings.notification_sounds_desc')}</p>
                             </div>
-                            <Switch defaultChecked />
+                            <Select value={profileData.notificationSound} onValueChange={(value) => {
+                                setProfileData(prev => ({ ...prev, notificationSound: value }));
+                                playNotificationSound(value);
+                            }} className="w-[120px]">
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="classico">Clássico</SelectItem>
+                                    <SelectItem value="moderno">Moderno (Recomendado)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                             <Separator />
                         <div className="flex items-start justify-between gap-4">

@@ -59,7 +59,7 @@ function PassengerProfilePage() {
     const [rideHistory, setRideHistory] = useState<Ride[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     
-    const [profileData, setProfileData] = useState<Partial<AuthUser>>({ name: '', email: '', phone: '', photoUrl: '', identityDocumentUrl: '', homeAddress: '', workAddress: '' });
+    const [profileData, setProfileData] = useState<Partial<AuthUser>>({ name: '', email: '', phone: '', photoUrl: '', identityDocumentUrl: '', homeAddress: '', workAddress: '', notificationSound: 'moderno' });
     const [addressInput, setAddressInput] = useState('');
     
     const idInputRef = useRef<HTMLInputElement>(null);
@@ -261,6 +261,7 @@ function PassengerProfilePage() {
                 name: profileData.name,
                 email: profileData.email,
                 phone: profileData.phone,
+                notificationSound: profileData.notificationSound,
             });
             toast({ title: t('toast.info_saved_title'), description: t('toast.info_saved_desc') });
             setIsEditingProfile(false);
@@ -269,7 +270,7 @@ function PassengerProfilePage() {
         }
     };
 
-    const handleSaveAddress = async () => {
+    const handleSaveAddress = async (addressType: AddressType) => async () => {
         if (!user || !openSheet || openSheet.type !== 'address') return;
     
         const fieldToUpdate = openSheet.addressType === 'home' ? 'homeAddress' : 'workAddress';
@@ -338,6 +339,12 @@ function PassengerProfilePage() {
                 return null;
         }
     }
+
+    // Função para tocar o som ao selecionar
+    const playNotificationSound = (sound: string) => {
+      const audio = new Audio(`/sounds/${sound}.mp3`);
+      audio.play();
+    };
 
 
     if (!user || isLoading) {
@@ -481,6 +488,22 @@ function PassengerProfilePage() {
                     </CardContent>
                 </Card>
                 
+                <div className="mt-6">
+                    <label className="block text-sm font-medium mb-1">Som de notificação</label>
+                    <select
+                        className="w-full border rounded p-2"
+                        value={profileData.notificationSound || 'moderno'}
+                        onChange={e => {
+                            setProfileData(prev => ({ ...prev, notificationSound: e.target.value }));
+                            playNotificationSound(e.target.value);
+                        }}
+                    >
+                        <option value="classico">Clássico</option>
+                        <option value="moderno">Moderno (Recomendado)</option>
+                    </select>
+                    <button className="mt-2 px-4 py-2 rounded bg-primary text-white" onClick={handleSaveProfile}>Salvar som</button>
+                </div>
+
                 <div className="mt-8">
                      <Button variant="destructive" className="w-full h-12" onClick={logout}>
                         <LogOut className="mr-2 h-5 w-5" />
@@ -549,7 +572,7 @@ function PassengerProfilePage() {
                         <SheetClose asChild>
                             <Button type="button" variant="outline">{t('common.cancel')}</Button>
                         </SheetClose>
-                        <Button onClick={handleSaveAddress}>{t('profile.address.save_address_btn')}</Button>
+                        <Button onClick={handleSaveAddress(openSheet?.addressType || 'home')}>{t('profile.address.save_address_btn')}</Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
