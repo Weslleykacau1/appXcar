@@ -340,7 +340,6 @@ export function ConfirmRideUI() {
 
             <Button 
                 className="w-full h-12 text-lg font-bold bg-secondary hover:bg-secondary/90" 
-                disabled={isRequesting || isLoadingRoute}
                 onClick={handleRequestRide}
             >
                {isRequesting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 

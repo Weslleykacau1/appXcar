@@ -6,7 +6,7 @@ import { withAuth } from "@/components/with-auth";
 import { useAuth, User } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet, Circle } from "lucide-react";
+import { MapPin, LocateFixed, Menu, Loader2, Star, X, ShieldCheck, Search, Pencil, Settings2, Car, ArrowLeft, CreditCard, Landmark, ChevronDown, Users, Home, Briefcase, Zap, History, Plus, Wallet, Circle, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Map } from "@/components/map";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { saveUserShortcut, getUserShortcuts, UserShortcut, updateUserShortcut, removeUserShortcut } from '@/lib/turso';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 
 type RideCategory = "comfort" | "executive";
@@ -103,6 +105,13 @@ function RequestRidePage() {
   const [recentRides, setRecentRides] = useState<RecentRide[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [userShortcuts, setUserShortcuts] = useState<UserShortcut[]>([]);
+  const [editShortcut, setEditShortcut] = useState<UserShortcut | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editLat, setEditLat] = useState('');
+  const [editLng, setEditLng] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
 
   const { toast } = useToast();
@@ -161,6 +170,13 @@ function RequestRidePage() {
   useEffect(() => {
     loadUserData();
   }, [loadUserData]);
+
+  // Buscar atalhos do Turso ao carregar a tela
+  useEffect(() => {
+    if (user) {
+      getUserShortcuts(user.id).then(setUserShortcuts);
+    }
+  }, [user]);
 
 
   const debounce = (func: Function, delay: number) => {
@@ -371,18 +387,70 @@ function RequestRidePage() {
         }
     };
 
-    const handleCreateShortcut = () => {
-        if (!selectedShortcutSuggestion) return;
-        // Logic to save the shortcut would go here.
-        // For now, we'll just show a toast and close the screen.
-        toast({
-            title: "Atalho Criado!",
-            description: `O atalho para "${selectedShortcutSuggestion.text}" foi salvo.`
-        });
-        setIsAddingShortcut(false);
-        setShortcutInput("");
-        setSelectedShortcutSuggestion(null);
+    // Salvar atalho no Turso ao criar
+    const handleCreateShortcut = async () => {
+      if (!selectedShortcutSuggestion || !user) return;
+      await saveUserShortcut(
+        user.id,
+        selectedShortcutSuggestion.text,
+        selectedShortcutSuggestion.place_name,
+        Array.isArray(selectedShortcutSuggestion.center) ? selectedShortcutSuggestion.center[1] : selectedShortcutSuggestion.center.lat,
+        Array.isArray(selectedShortcutSuggestion.center) ? selectedShortcutSuggestion.center[0] : selectedShortcutSuggestion.center.lng
+      );
+      toast({
+        title: "Atalho Criado!",
+        description: `O atalho para \"${selectedShortcutSuggestion.text}\" foi salvo.`
+      });
+      setIsAddingShortcut(false);
+      setShortcutInput("");
+      setSelectedShortcutSuggestion(null);
+      // Atualizar lista de atalhos
+      const shortcuts = await getUserShortcuts(user.id);
+      setUserShortcuts(shortcuts);
+    };
+
+  // Adicionar função para alternar partida e destino
+  const handleSwapPickupDestination = () => {
+    // Troca os valores e sugestões
+    const tempInput = pickupInput;
+    const tempSuggestion = pickupSuggestion;
+    setPickupInput(destinationInput);
+    setPickupSuggestion(destinationSuggestion);
+    setDestinationInput(tempInput);
+    setDestinationSuggestion(tempSuggestion);
+  };
+
+  // Função para abrir modal de edição
+  const handleOpenEditModal = (shortcut: UserShortcut) => {
+    setEditShortcut(shortcut);
+    setEditLabel(shortcut.label);
+    setEditAddress(shortcut.address);
+    setEditLat(String(shortcut.lat));
+    setEditLng(String(shortcut.lng));
+  };
+  // Função para salvar edição
+  const handleSaveEdit = async () => {
+    if (!editShortcut) return;
+    setIsSavingEdit(true);
+    await updateUserShortcut(editShortcut.id, editLabel, editAddress, Number(editLat), Number(editLng));
+    setEditShortcut(null);
+    setIsSavingEdit(false);
+    // Atualizar lista
+    if (user) {
+      const shortcuts = await getUserShortcuts(user.id);
+      setUserShortcuts(shortcuts);
     }
+    toast({ title: 'Atalho atualizado!' });
+  };
+  // Função para remover atalho
+  const handleRemoveShortcut = async (shortcutId: number) => {
+    await removeUserShortcut(shortcutId);
+    if (user) {
+      const shortcuts = await getUserShortcuts(user.id);
+      setUserShortcuts(shortcuts);
+    }
+    toast({ title: 'Atalho removido!' });
+  };
 
   if (isLoading || !user) {
     return (
@@ -528,6 +596,43 @@ function RequestRidePage() {
             <main className="flex-1 px-4 py-6 space-y-6">
                  <Card className="bg-card shadow-sm">
                     <CardContent className="p-4">
+                        <div className="flex flex-col gap-2 mb-4">
+  <div className="flex items-center bg-[#f2eefc] rounded-lg px-4 py-2 relative">
+    <input
+      type="radio"
+      checked={true}
+      readOnly
+      className="mr-2 accent-primary"
+    />
+    <span className="flex-1 truncate">{pickupInput}</span>
+    <button
+      className="ml-2 p-1 rounded hover:bg-muted"
+      title="Adicionar atalho para partida"
+      onClick={() => setIsAddingShortcut(true)}
+    >
+      <Plus className="h-5 w-5 text-primary" />
+    </button>
+  </div>
+  <div className="flex items-center bg-[#f2eefc] rounded-lg px-4 py-2 relative mt-1">
+    <input
+      type="radio"
+      checked={false}
+      readOnly
+      className="mr-2 accent-primary"
+    />
+    <span className="flex-1 truncate">{destinationInput || 'Destino'}</span>
+    <button className="ml-2 p-1 rounded hover:bg-muted" title="Alternar partida e destino" onClick={handleSwapPickupDestination}>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 7V17" />
+        <path d="M7 17L5 15" />
+        <path d="M7 17L9 15" />
+        <path d="M13 13V3" />
+        <path d="M13 3L11 5" />
+        <path d="M13 3L15 5" />
+      </svg>
+    </button>
+  </div>
+</div>
                         <div className="flex items-start gap-4">
                             <div className="flex flex-col items-center">
                                <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-background ring-2 ring-blue-500 mt-5"></div>
@@ -647,82 +752,61 @@ function RequestRidePage() {
     )
   }
 
-
+  // Exibir atalhos/favoritos do Turso na interface
   return (
-    <div className="flex flex-col min-h-screen w-full bg-gradient-to-b from-[#FAD7FF] via-[#E5D0FF] to-background dark:from-[#9B2FFF] dark:via-[#B028A6] dark:to-[#1D1B2E]">
-        <div className="p-6 text-foreground dark:text-white space-y-6">
-            <h1 className="text-3xl font-bold">Oi, {firstName}</h1>
-            
-            <div className="relative flex items-center cursor-pointer" onClick={() => handleOpenTripPlanner()}>
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground dark:text-white/80" />
-                <button
-                    id="destination"
-                    className="pl-12 pr-4 h-14 w-full flex items-center text-base rounded-full bg-[#f2eefc] dark:bg-[#2a2733] border border-transparent dark:border-none text-left"
-                    disabled={isGettingLocation}
-                >
-                    {isGettingLocation ? (
-                        <div className="flex items-center gap-2 text-muted-foreground dark:text-white/80">
-                           <Loader2 className="h-5 w-5 animate-spin" />
-                           <span>Obtendo localização...</span>
-                        </div>
-                    ) : (
-                       <span className="text-muted-foreground dark:text-white/80">Para onde você vai?</span>
-                    )}
-                </button>
+    <div className="flex flex-col min-h-screen w-full bg-white">
+      <header className="flex items-center px-4 py-3 border-b">
+        <button className="mr-2" onClick={() => router.back()}><X className="h-6 w-6" /></button>
+        <h1 className="text-xl font-bold flex-1">Viagem</h1>
+      </header>
+      <main className="flex-1 px-4 pt-4 pb-32">
+        <div className="mb-6">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2 mb-1">
+              <input type="radio" checked readOnly className="mr-2 accent-primary" />
+              <span className="flex-1 truncate">{pickupInput}</span>
+              <button className="ml-2 p-1 rounded hover:bg-muted" title="Adicionar atalho para partida" onClick={() => setIsAddingShortcut(true)}>
+                <Plus className="h-5 w-5 text-primary" />
+              </button>
             </div>
+            <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2">
+              <input type="radio" readOnly className="mr-2 accent-primary" />
+              <span className="flex-1 truncate">{destinationInput || 'Destino'}</span>
+              <button className="ml-2 p-1 rounded hover:bg-muted" title="Alternar partida e destino" onClick={handleSwapPickupDestination}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 7V17" />
+                  <path d="M7 17L5 15" />
+                  <path d="M7 17L9 15" />
+                  <path d="M13 13V3" />
+                  <path d="M13 3L11 5" />
+                  <path d="M13 3L15 5" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-        <main className="flex-1 p-4 space-y-6 pb-24 bg-background rounded-t-3xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-             <Card className="bg-card shadow-lg">
-                <CardContent className="p-4 flex items-center gap-4">
-                    <div className="bg-primary/20 p-2 rounded-full">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/><path d="M12 17.5c-3.038 0-5.5-2.462-5.5-5.5s2.462-5.5 5.5-5.5c1.47 0 2.825.582 3.82 1.544"/><path d="M20 17.5c-1.13.43-2.323.68-3.58.75"/></svg>
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-foreground">Lembre-se de usar o cinto de segurança</h3>
-                        <p className="text-sm text-muted-foreground">Sua segurança é nossa prioridade.</p>
-                    </div>
-                </CardContent>
-            </Card>
-            
-            <Separator />
-            
-            <div>
-                 <h2 className="text-lg font-semibold mb-3">Viagens recentes</h2>
-                 <div className="space-y-2">
-                    {recentRides.map(ride => (
-                        <button key={ride.id} className="w-full flex items-center gap-4 text-left p-2 -ml-2 rounded-lg hover:bg-muted" onClick={async () => {
-                            const suggestion = await geocodeAddress(ride.destinationAddress);
-                            if (suggestion) {
-                                handleOpenTripPlanner(suggestion);
-                            }
-                        }}>
-                           <div className="p-3 bg-muted rounded-full">
-                             <History className="h-5 w-5 text-muted-foreground"/>
-                           </div>
-                           <div>
-                            <p className="font-semibold">{ride.destinationAddress.split(',')[0]}</p>
-                            <p className="text-sm text-muted-foreground">
-                                {ride.createdAt.toLocaleDateString('pt-BR', { weekday: 'long' })}
-                            </p>
-                           </div>
-                        </button>
-                    ))}
-                 </div>
-            </div>
-
-            <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                    <div className="p-4">
-                         <h2 className="font-semibold">Você está aqui</h2>
-                    </div>
-                     <div className="h-48 w-full">
-                        <Map mapRef={mapRef}/>
-                    </div>
-                </CardContent>
-            </Card>
-
-        </main>
-        <BottomNavBar role="passenger" />
+        <div className="flex flex-col gap-3">
+          <button className="flex items-center gap-3 text-left py-2" onClick={() => router.push('/passenger/profile?edit=home')}>
+            <Home className="h-5 w-5 text-pink-500" />
+            <span className="font-semibold">Adicionar casa</span>
+          </button>
+          <button className="flex items-center gap-3 text-left py-2" onClick={() => router.push('/passenger/profile?edit=work')}>
+            <Briefcase className="h-5 w-5 text-pink-500" />
+            <span className="font-semibold">Adicionar trabalho</span>
+          </button>
+          <button className="flex items-center gap-3 text-left py-2" onClick={() => setIsAddingShortcut(true)}>
+            <Star className="h-5 w-5 text-pink-500" />
+            <span className="font-semibold">Adicionar atalho</span>
+          </button>
+          <button className="flex items-center gap-3 text-left py-2" onClick={() => setIsPickingOnMap(true)}>
+            <MapPin className="h-5 w-5 text-pink-500" />
+            <span className="font-semibold">Definir no mapa</span>
+          </button>
+        </div>
+      </main>
+      <footer className="fixed bottom-0 left-0 right-0 px-4 pb-6 bg-white">
+        <Button className="w-full h-12 rounded-full text-lg font-semibold bg-[#7C3AED] hover:bg-[#6D28D9] text-white">Confirmar rota</Button>
+      </footer>
     </div>
   );
 }
